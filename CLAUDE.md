@@ -19,3 +19,8 @@ decision from Eleonora first — open an issue rather than guessing.
 
     make check      run the suite
     make self       dossier against its own agent-control pack
+
+4. **The loop.** [FACTORY.md](FACTORY.md) says where work comes from, what
+   the merge gates are, and what to stop and ask about rather than decide.
+
+    make boundary   the human-only paths, as CONTRACT.md itself lists them

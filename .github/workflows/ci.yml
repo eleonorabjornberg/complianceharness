@@ -1,5 +1,15 @@
 name: check
+
 on: [push, pull_request]
+
+permissions:
+  contents: read
+
+# A factory outruns its CI unless superseded runs are killed.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   suite:
     runs-on: ubuntu-latest
@@ -13,3 +23,34 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: make check
       - run: make self
+
+  boundary:
+    # Work may not edit its own judge. The reserved paths are read out of
+    # CONTRACT.md by the script, not restated here.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: git fetch --no-tags origin ${{ github.base_ref }}
+      - run: python3 tools/check_boundary.py origin/${{ github.base_ref }}
+
+  determinism:
+    # The guarantee, checked the way a stranger would check it: the same
+    # subject state under two different absolute paths, byte for byte.
+    runs-on: ubuntu-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          rm -rf /tmp/one /tmp/two-named-differently
+          cp -R . /tmp/one
+          cp -R . /tmp/two-named-differently
+          cd /tmp/one && PYTHONPATH=src python3 -B -m dossier check . \
+            --pack agent-control --json --name subject > /tmp/one.json
+          cd /tmp/two-named-differently && PYTHONPATH=src python3 -B -m dossier check . \
+            --pack agent-control --json --name subject > /tmp/two.json
+          diff /tmp/one.json /tmp/two.json
+          echo "reports are byte-identical across paths"
