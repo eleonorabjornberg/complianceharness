@@ -60,7 +60,7 @@ each other, so all of them can be in flight at once. Expect the conflict in
     commit — a violation that was later reverted would go unreported.
     Caught by a fixture whose offending commit is not HEAD.
 
-- [ ] **C3 `commits_are_attributable`** `[collector]`
+- [x] **C3 `commits_are_attributable`** `[collector]` — done 17 Sep
   - **Sees:** that every commit has an author and a non-empty message, and
     — where an agent-author pattern is given — that every matching commit
     carries a trailer naming what produced it.
@@ -73,7 +73,7 @@ each other, so all of them can be in flight at once. Expect the conflict in
   - **Mutation:** accept an empty trailer value as present. Caught by a
     fixture with `Co-Authored-By:` and nothing after it.
 
-- [ ] **C4 `command_succeeds`** `[collector]` — decided, buildable
+- [x] **C4 `command_succeeds`** `[collector]` — done 17 Sep
   - **Sees:** that a command the subject itself declares runs and exits
     zero inside the subject. The first collector whose evidence is a
     behaviour rather than a document.
@@ -253,7 +253,7 @@ each other, so all of them can be in flight at once. Expect the conflict in
 
 ## Infrastructure
 
-- [ ] **I1 `--baseline <report.json>`** `[infra]`
+- [x] **I1 `--baseline <report.json>`** `[infra]` — done 17 Sep
   - **Sees:** an adoptable tool. Claims already unsupported in the baseline
     become known debt rather than noise, so a repository that would
     currently fail everything can start using this.
@@ -277,7 +277,7 @@ each other, so all of them can be in flight at once. Expect the conflict in
     environment, and every collector module is imported by its package.
     Both mutations recorded below.
 
-- [ ] **I4 Run against a second real repository in CI** `[infra]`
+- [x] **I4 Run against a second real repository in CI** `[infra]`
   - **Sees:** that the tool does not crash on code it has never seen.
   - **Done when:** CI checks out one pinned public repository by sha and
     runs both packs against it, asserting only that the exit code is 0 or
@@ -371,3 +371,19 @@ In the shape CONTRACT.md asks for.
           one reported SATISFIED. The variant of the same mutation that
           imports time for it is caught first by
           test_nothing_under_src_imports_a_source_of_irreproducibility.
+    mutation: an empty trailer value (`Co-Authored-By:` with nothing after
+          it) accepted as a producer trailer
+    caught by: test_an_empty_trailer_value_is_not_a_producer_trailer
+    note: caught first attempt, as the only red test of twelve. A trailer
+          that names nothing does not attribute a commit, so the fixture
+          carrying the bare token reports MISSING, not SATISFIED.
+    mutation: --baseline suppressed by claim id regardless of status — a
+          claim id the baseline ever saw was silenced whatever the current
+          run said, so a regression on a known-debt claim went unreported
+          and a fixed claim was never reported as fixed
+    caught by: test_a_claim_fixed_since_the_baseline_is_reported_as_such
+    note: caught first attempt, and by the catcher the item named — the
+          third Done-when case. Debt is a fact about statuses (unsupported
+          in both runs), never a property of a claim id; the fixed-case
+          command test pins that. The regression exit-code test caught it
+          too, as did the classification-level fixed test.

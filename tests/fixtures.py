@@ -325,3 +325,169 @@ DOCUMENT_ABSENT = [
     {"README.md": "# v1\n"},
     {"README.md": "# v2\n"},
 ]
+# --- Commit-attribution subjects (C3) ---------------------------------------
+
+def _fixture_git(
+    root: Path,
+    args: list[str],
+    *,
+    author_name: str,
+    author_email: str,
+    commit: int,
+) -> None:
+    """Run one git command in a C3 fixture, with a per-commit author and clock.
+
+    The same discipline as ``_git`` — machine git config screened out,
+    author and dates fixed per commit — but the author is chosen per
+    commit, because who wrote a commit is the thing under test here.
+    """
+    env = dict(os.environ)
+    for key in _STRIP_FROM_ENV:
+        env.pop(key, None)
+    env.update({"GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CONFIG_SYSTEM": "/dev/null"})
+    day = f"2026-02-{commit:02d}"
+    env.update(
+        {
+            "GIT_AUTHOR_NAME": author_name,
+            "GIT_AUTHOR_EMAIL": author_email,
+            "GIT_AUTHOR_DATE": f"{day}T12:00:00+00:00",
+            "GIT_COMMITTER_NAME": "Fixture Committer",
+            "GIT_COMMITTER_EMAIL": "fixture@example.com",
+            "GIT_COMMITTER_DATE": f"{day}T12:00:00+00:00",
+        }
+    )
+    subprocess.run(
+        ["git", *args],
+        cwd=root,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+
+def _fast_import(root: Path, stream: str) -> None:
+    """Feed ``git fast-import`` a stream, under the same env screening as ``_git``."""
+    env = dict(os.environ)
+    for key in _STRIP_FROM_ENV:
+        env.pop(key, None)
+    env.update({"GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CONFIG_SYSTEM": "/dev/null"})
+    subprocess.run(
+        ["git", "fast-import", "--quiet"],
+        cwd=root,
+        env=env,
+        input=stream,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+
+class AttributionTempSubject(TempSubject):
+    """A throwaway git repository whose commits have chosen authors and messages.
+
+        with AttributionTempSubject(
+            [
+                {
+                    "message": "x\\n\\nCo-Authored-By: The Agent <a@example.com>\\n",
+                    "author_name": "Agent Bot",
+                    "author_email": "agent@example.com",
+                },
+            ]
+        ) as subject:
+            ...
+
+    Each dict is one commit, in order. ``message`` is required — an empty
+    string is a deliberate empty message — and the author defaults to the
+    same fixed identity ``_git`` uses. Commits are ``--allow-empty``: the
+    history, not the trees, is what commits_are_attributable looks at.
+    """
+
+    def __init__(
+        self, commits: list[dict[str, str]] | None = None, name: str = "attribution-fixture"
+    ):
+        super().__init__(files={}, name=name)
+        self.commits = commits or []
+
+    def __enter__(self) -> Subject:
+        subject = super().__enter__()
+        _git(subject.root, ["init"])
+        for index, spec in enumerate(self.commits, start=1):
+            _fixture_git(
+                subject.root,
+                [
+                    "commit",
+                    "--allow-empty",
+                    "--allow-empty-message",
+                    "-m",
+                    spec["message"],
+                ],
+                author_name=spec.get("author_name", "Fixture Author"),
+                author_email=spec.get("author_email", "fixture@example.com"),
+                commit=index,
+            )
+        return subject
+
+
+class NoAuthorTempSubject(TempSubject):
+    """A git repository whose only commit has no author at all.
+
+    ``git commit`` refuses an empty author ident, so the commit is built
+    with fast-import, which accepts one. This is the ``has no author``
+    defect: a commit nothing stands behind.
+    """
+
+    def __enter__(self) -> Subject:
+        subject = super().__enter__()
+        _git(subject.root, ["init"])
+        # Pin the branch name so the fixture does not depend on git's
+        # version-dependent default branch.
+        _git(subject.root, ["symbolic-ref", "HEAD", "refs/heads/main"])
+        message = "no author here\n"
+        _fast_import(
+            subject.root,
+            "commit refs/heads/main\n"
+            "author  <> 1767225600 +0000\n"
+            "committer Fixture Committer <fixture@example.com> 1767225600 +0000\n"
+            f"data {len(message.encode('utf-8'))}\n"
+            f"{message}",
+        )
+        return subject
+
+# --- Command declarations (C4) ----------------------------------------------
+
+# A subject declaring its own commands in .dossier.json at its root: a name
+# mapped to an argv list. JSON rather than TOML — tomllib is 3.11+ and
+# dossier runs on 3.10. The commands are POSIX fixtures the way the git
+# fixtures are git fixtures: /bin/true, /bin/false and /bin/sleep are the
+# smallest witnesses of a passing, a failing and a hanging command.
+DECLARED_PASSING_COMMAND = {
+    "README.md": "# Command subject\n",
+    ".dossier.json": '{"commands": {"suite": ["true"]}}\n',
+}
+
+DECLARED_FAILING_COMMAND = {
+    ".dossier.json": '{"commands": {"suite": ["false"]}}\n',
+}
+
+# Five seconds is far longer than the timeout the test passes, and far
+# shorter than any real hang: the fixture proves the timeout fires, not
+# how long a patient command takes.
+DECLARED_SLOW_COMMAND = {
+    ".dossier.json": '{"commands": {"suite": ["sleep", "5"]}}\n',
+}
+
+# No .dossier.json at all: the subject never offered a command to run.
+UNDECLARED_COMMANDS = {
+    "README.md": "# Undeclared subject\n",
+}
+
+# A declaration exists, but the claim's name is not in it.
+UNDECLARED_COMMAND_NAME = {
+    ".dossier.json": '{"commands": {"lint": ["true"]}}\n',
+}
+
+# A declaration that is not JSON: UNVERIFIABLE, never a crash.
+MALFORMED_COMMAND_DECLARATION = {
+    ".dossier.json": "{ commands: ",
+}
