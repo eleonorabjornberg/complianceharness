@@ -135,7 +135,7 @@ each other, so all of them can be in flight at once. Expect the conflict in
   - **Mutation:** treat `>=` as a pin. Caught by an unpinned fixture using
     `>=` rather than a bare name.
 
-- [ ] **C7 `test_suite_present`** `[collector]`
+- [x] **C7 `test_suite_present`** `[collector]` — done 17 Sep
   - **Sees:** that a test directory exists and contains at least N test
     functions, found by parsing with `ast` rather than by grepping for the
     word test.
@@ -331,3 +331,10 @@ In the shape CONTRACT.md asks for.
     caught by: test_every_collector_module_is_imported_by_its_package
     note: caught first attempt. This was previously a comment in
           collectors/__init__.py asking people to remember.
+
+    mutation: test_suite_present counted test functions by regex on the
+          source text instead of parsing with ast
+    caught by: test_a_module_that_only_looks_like_tests_reports_missing
+    note: caught first attempt. The fixture module is named test_things.py
+          and its docstring plans two test functions it never wrote; a
+          regex counts them, an ast parse counts nothing.
