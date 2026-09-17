@@ -239,7 +239,7 @@ each other, so all of them can be in flight at once. Expect the conflict in
     `blocking` — changing the default silently changes every existing
     caller's meaning.
 
-- [ ] **R4 Rationale inline for unsupported claims** `[cli]`
+- [x] **R4 Rationale inline for unsupported claims** `[cli]` — done 17 Sep
   - **Sees:** why a claim matters, at the moment it fails, truncated to one
     line, in the default output.
   - **Done when:** a test asserts the truncation is by character count and
@@ -351,3 +351,13 @@ In the shape CONTRACT.md asks for.
     note: caught first attempt. The CLI-level test caught it too: the
           appeared section vanished and the one-sided claim showed up in
           the unchanged line.
+
+    mutation: inline rationale truncated at the last word boundary instead
+          of by character count — the rendered line then varied with
+          where words happened to fall
+    caught by: test_truncation_is_by_character_count_and_not_by_word
+    note: caught first attempt. The fixture rationale's 72-character cut
+          lands mid-word, so the word-boundary version drops the partial
+          word and renders a visibly shorter line; the test asserts the
+          exact string and that the character before the ellipsis is not
+          a space, so the cut point cannot drift.
