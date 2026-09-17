@@ -28,7 +28,7 @@ package's `__init__.py`, and a test file with fixtures. They do not import
 each other, so all of them can be in flight at once. Expect the conflict in
 `collectors/__init__.py` and resolve it by taking both sides.
 
-- [ ] **C1 `git_history`** `[collector]`
+- [x] **C1 `git_history`** `[collector]`
   - **Sees:** that the subject has a history at all, and which history —
     the sha of its first and last commit, so a verdict can be tied to a
     tree a reviewer can check out.
@@ -121,7 +121,7 @@ each other, so all of them can be in flight at once. Expect the conflict in
     `test_purity.py` if it imports `time`, and by a fixture whose files are
     all touched at checkout if it does not.
 
-- [ ] **C6 `declares_no_dependencies`** `[collector]`
+- [x] **C6 `declares_no_dependencies`** `[collector]`
   - **Sees:** that the subject has no unpinned dependency — no
     `requirements.txt`, `pyproject` dependency list or lockfile, or, where
     there is one, every entry pinned.
@@ -135,7 +135,7 @@ each other, so all of them can be in flight at once. Expect the conflict in
   - **Mutation:** treat `>=` as a pin. Caught by an unpinned fixture using
     `>=` rather than a bare name.
 
-- [ ] **C7 `test_suite_present`** `[collector]`
+- [x] **C7 `test_suite_present`** `[collector]` — done 17 Sep
   - **Sees:** that a test directory exists and contains at least N test
     functions, found by parsing with `ast` rather than by grepping for the
     word test.
@@ -219,7 +219,7 @@ each other, so all of them can be in flight at once. Expect the conflict in
   - **Mutation:** compute the digest from the formatted string. Caught by
     the digest-equality test across the two formats.
 
-- [ ] **R2 `dossier diff <a.json> <b.json>`** `[cli]`
+- [x] **R2 `dossier diff <a.json> <b.json>`** `[cli]`
   - **Sees:** what changed between two reports — which claims gained
     support, which lost it, which appeared.
   - **Touches:** `cli.py`, a new module if it grows past fifty lines, a
@@ -332,12 +332,22 @@ In the shape CONTRACT.md asks for.
     note: caught first attempt. This was previously a comment in
           collectors/__init__.py asking people to remember.
 
-    mutation: matched the word `mutation` anywhere in the subject instead
-          of the recorded block
-    caught by: test_a_mention_in_prose_is_not_a_recorded_mutation
-    note: caught first attempt. The prose fixture mentions mutation
-          testing without recording one, and the word-match collector
-          reported SATISFIED for it; only the block shape — a `mutation:`
-          line and a `caught by:` line sharing a paragraph — survives.
-          The locator test also caught it, since the word-match evidence
-          carried no line number.
+    mutation: git_history raised instead of returning UNVERIFIABLE when
+          .git is missing
+    caught by: test_no_git_directory_reports_unverifiable
+    note: caught first attempt. The test calls the collector directly, so
+          the raise surfaces; behind the engine's catch-all it would have
+          come back as the same UNVERIFIABLE verdict and hidden the defect.
+    mutation: `>=` accepted as a pin in declares_no_dependencies
+    caught by: test_a_geq_constraint_is_not_a_pin
+    note: caught first attempt, along with three sibling unpinned tests.
+          The unpinned fixture uses `>=` rather than a bare name precisely
+          so this mutation has a witness.
+
+    mutation: diff treated a claim missing from one report as unchanged —
+          the one-sided claim moved into `unchanged` and neither appeared
+          nor disappeared was ever reported
+    caught by: test_a_claim_present_in_only_one_report_is_not_reported_as_unchanged
+    note: caught first attempt. The CLI-level test caught it too: the
+          appeared section vanished and the one-sided claim showed up in
+          the unchanged line.
