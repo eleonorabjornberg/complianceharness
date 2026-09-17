@@ -219,7 +219,7 @@ each other, so all of them can be in flight at once. Expect the conflict in
   - **Mutation:** compute the digest from the formatted string. Caught by
     the digest-equality test across the two formats.
 
-- [ ] **R2 `dossier diff <a.json> <b.json>`** `[cli]`
+- [x] **R2 `dossier diff <a.json> <b.json>`** `[cli]`
   - **Sees:** what changed between two reports — which claims gained
     support, which lost it, which appeared.
   - **Touches:** `cli.py`, a new module if it grows past fifty lines, a
@@ -337,3 +337,11 @@ In the shape CONTRACT.md asks for.
     note: caught first attempt, along with three sibling unpinned tests.
           The unpinned fixture uses `>=` rather than a bare name precisely
           so this mutation has a witness.
+
+    mutation: diff treated a claim missing from one report as unchanged —
+          the one-sided claim moved into `unchanged` and neither appeared
+          nor disappeared was ever reported
+    caught by: test_a_claim_present_in_only_one_report_is_not_reported_as_unchanged
+    note: caught first attempt. The CLI-level test caught it too: the
+          appeared section vanished and the one-sided claim showed up in
+          the unchanged line.
