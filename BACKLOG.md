@@ -253,7 +253,7 @@ each other, so all of them can be in flight at once. Expect the conflict in
 
 ## Infrastructure
 
-- [ ] **I1 `--baseline <report.json>`** `[infra]`
+- [x] **I1 `--baseline <report.json>`** `[infra]` — done 17 Sep
   - **Sees:** an adoptable tool. Claims already unsupported in the baseline
     become known debt rather than noise, so a repository that would
     currently fail everything can start using this.
@@ -358,3 +358,14 @@ In the shape CONTRACT.md asks for.
     note: caught first attempt. The text format digests the report; the
           mutated markdown hashed its own rendering, and for the same
           report the two formats printed different digests.
+
+    mutation: --baseline suppressed by claim id regardless of status — a
+          claim id the baseline ever saw was silenced whatever the current
+          run said, so a regression on a known-debt claim went unreported
+          and a fixed claim was never reported as fixed
+    caught by: test_a_claim_fixed_since_the_baseline_is_reported_as_such
+    note: caught first attempt, and by the catcher the item named — the
+          third Done-when case. Debt is a fact about statuses (unsupported
+          in both runs), never a property of a claim id; the fixed-case
+          command test pins that. The regression exit-code test caught it
+          too, as did the classification-level fixed test.
