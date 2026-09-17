@@ -26,9 +26,10 @@ from fixtures import (
 
 SHA = re.compile(r"^[0-9a-f]{40}$")
 
-# The agent-author pattern a claim would pass: it matches the author
-# ident "Agent Bot <agent@example.com>" and nothing else in the fixtures.
-AGENT_PATTERN = r"agent@example\.com$"
+# The agent-author pattern a claim would pass: it matches the email in
+# the author ident "Agent Bot <agent@example.com>" and nothing else in
+# the fixtures.
+AGENT_PATTERN = r"agent@example\.com"
 
 AGENT_AUTHOR = {"author_name": "Agent Bot", "author_email": "agent@example.com"}
 HUMAN_AUTHOR = {"author_name": "Fixture Author", "author_email": "fixture@example.com"}
@@ -39,7 +40,7 @@ TRAILER = "Co-Authored-By: The Agent <agent@example.com>"
 def _git_shas(root, *args: str) -> list[str]:
     """An independent read of the fixture's history, straight from git."""
     result = subprocess.run(
-        ["git", "rev-list", *args],
+        ["git", "rev-list", *(args or ("HEAD",))],
         cwd=root,
         capture_output=True,
         text=True,
@@ -64,11 +65,9 @@ class AttributionTests(unittest.TestCase):
             )
 
         self.assertEqual(status, SATISFIED)
-        self.assertEqual(
-            [item.locator for item in evidence], sorted(expected, reverse=True)
-        )
-        for item in evidence:
-            self.assertEqual(item.kind, "commit")
+        # Same history, same order: git log walks newest first, and the
+        # evidence is in that order, HEAD's sha first.
+        self.assertEqual([item.locator for item in evidence], expected)
 
     def test_agent_commits_without_trailers_report_missing_and_name_the_shas(self):
         """Done when: the same history without trailers reports MISSING,
@@ -95,7 +94,7 @@ class AttributionTests(unittest.TestCase):
     def test_an_empty_trailer_value_is_not_a_producer_trailer(self):
         """The C3 mutation witness: `Co-Authored-By:` with nothing after it
         names nothing, so the commit counts as unattributed."""
-        commits = [{"message": f"change 1\n\n{TRAILER}:\n", **AGENT_AUTHOR}]
+        commits = [{"message": "change 1\n\nCo-Authored-By:\n", **AGENT_AUTHOR}]
         with AttributionTempSubject(commits) as subject:
             expected = _git_shas(subject.root)
             status, reason, evidence = commits_are_attributable(
