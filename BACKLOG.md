@@ -150,7 +150,7 @@ each other, so all of them can be in flight at once. Expect the conflict in
   - **Mutation:** count by regex on the source. Caught by the
     looks-like-tests fixture.
 
-- [ ] **C8 `mutation_evidence_recorded`** `[collector]`
+- [x] **C8 `mutation_evidence_recorded`** `[collector]`
   - **Sees:** that the repository records at least one mutation and the
     test that caught it, in the shape CONTRACT.md's "Test power" section
     describes. Weak evidence by design — the point is that its absence is
