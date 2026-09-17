@@ -135,7 +135,7 @@ each other, so all of them can be in flight at once. Expect the conflict in
   - **Mutation:** treat `>=` as a pin. Caught by an unpinned fixture using
     `>=` rather than a bare name.
 
-- [ ] **C7 `test_suite_present`** `[collector]`
+- [x] **C7 `test_suite_present`** `[collector]` — done 17 Sep
   - **Sees:** that a test directory exists and contains at least N test
     functions, found by parsing with `ast` rather than by grepping for the
     word test.

@@ -23,9 +23,14 @@ class TempSubject:
 
         with TempSubject({"README.md": "# Purpose\\n"}) as subject:
             ...
+
+    A key mapped to ``None`` creates an empty directory, for subjects
+    whose shape (a tests/ with nothing in it) is the fact under test.
     """
 
-    def __init__(self, files: dict[str, str] | None = None, name: str = "fixture"):
+    def __init__(
+        self, files: dict[str, str | None] | None = None, name: str = "fixture"
+    ):
         self.files = files or {}
         self.name = name
         self._directory: str | None = None
@@ -35,6 +40,9 @@ class TempSubject:
         root = Path(self._directory)
         for relative, content in self.files.items():
             path = root / relative
+            if content is None:
+                path.mkdir(parents=True, exist_ok=True)
+                continue
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(content, encoding="utf-8")
         return Subject.at(root, name=self.name)
