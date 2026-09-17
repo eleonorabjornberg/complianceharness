@@ -6,5 +6,6 @@ exists and every claim using it will come back UNVERIFIABLE.
 """
 
 from . import documents  # noqa: F401
+from . import git_history  # noqa: F401
 
-__all__ = ["documents"]
+__all__ = ["documents", "git_history"]
