@@ -294,3 +294,42 @@ LOCKFILE_AND_UNPINNED_REQUIREMENTS = {
     "requirements.txt": "requests\n",
     "uv.lock": "# generated lockfile\n",
 }
+
+
+# --- Command declarations (C4) ----------------------------------------------
+
+# A subject declaring its own commands in .dossier.json at its root: a name
+# mapped to an argv list. JSON rather than TOML — tomllib is 3.11+ and
+# dossier runs on 3.10. The commands are POSIX fixtures the way the git
+# fixtures are git fixtures: /bin/true, /bin/false and /bin/sleep are the
+# smallest witnesses of a passing, a failing and a hanging command.
+DECLARED_PASSING_COMMAND = {
+    "README.md": "# Command subject\n",
+    ".dossier.json": '{"commands": {"suite": ["true"]}}\n',
+}
+
+DECLARED_FAILING_COMMAND = {
+    ".dossier.json": '{"commands": {"suite": ["false"]}}\n',
+}
+
+# Five seconds is far longer than the timeout the test passes, and far
+# shorter than any real hang: the fixture proves the timeout fires, not
+# how long a patient command takes.
+DECLARED_SLOW_COMMAND = {
+    ".dossier.json": '{"commands": {"suite": ["sleep", "5"]}}\n',
+}
+
+# No .dossier.json at all: the subject never offered a command to run.
+UNDECLARED_COMMANDS = {
+    "README.md": "# Undeclared subject\n",
+}
+
+# A declaration exists, but the claim's name is not in it.
+UNDECLARED_COMMAND_NAME = {
+    ".dossier.json": '{"commands": {"lint": ["true"]}}\n',
+}
+
+# A declaration that is not JSON: UNVERIFIABLE, never a crash.
+MALFORMED_COMMAND_DECLARATION = {
+    ".dossier.json": "{ commands: ",
+}

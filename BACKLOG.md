@@ -73,7 +73,7 @@ each other, so all of them can be in flight at once. Expect the conflict in
   - **Mutation:** accept an empty trailer value as present. Caught by a
     fixture with `Co-Authored-By:` and nothing after it.
 
-- [ ] **C4 `command_succeeds`** `[collector]` — decided, buildable
+- [x] **C4 `command_succeeds`** `[collector]` — done 17 Sep
   - **Sees:** that a command the subject itself declares runs and exits
     zero inside the subject. The first collector whose evidence is a
     behaviour rather than a document.
