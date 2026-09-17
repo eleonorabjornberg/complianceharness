@@ -253,7 +253,7 @@ each other, so all of them can be in flight at once. Expect the conflict in
 
 ## Infrastructure
 
-- [ ] **I1 `--baseline <report.json>`** `[infra]`
+- [x] **I1 `--baseline <report.json>`** `[infra]` — done 17 Sep
   - **Sees:** an adoptable tool. Claims already unsupported in the baseline
     become known debt rather than noise, so a repository that would
     currently fail everything can start using this.
@@ -359,11 +359,13 @@ In the shape CONTRACT.md asks for.
           mutated markdown hashed its own rendering, and for the same
           report the two formats printed different digests.
 
-    mutation: command_succeeds honoured .dossier.json without requiring the
-          operator's --allow-commands flag (the authorisation check disabled)
-    caught by: test_without_the_flag_a_declared_command_is_not_run
-    note: caught first attempt. The subject's declaration is only half of
-          the opt-in; the test holds the no-flag verdict to the exact
-          `command execution not authorised` reason, so the mutated
-          collector's SATISFIED (it ran the command uninvited) fails the
-          assert on both status and reason.
+    mutation: --baseline suppressed by claim id regardless of status — a
+          claim id the baseline ever saw was silenced whatever the current
+          run said, so a regression on a known-debt claim went unreported
+          and a fixed claim was never reported as fixed
+    caught by: test_a_claim_fixed_since_the_baseline_is_reported_as_such
+    note: caught first attempt, and by the catcher the item named — the
+          third Done-when case. Debt is a fact about statuses (unsupported
+          in both runs), never a property of a claim id; the fixed-case
+          command test pins that. The regression exit-code test caught it
+          too, as did the classification-level fixed test.
