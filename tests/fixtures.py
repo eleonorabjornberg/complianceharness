@@ -76,6 +76,33 @@ EMPTY_SHELL = {
 }
 
 
+# --- Mutation evidence (C8) ------------------------------------------------
+
+# A repository that keeps a mutation log in the shape CONTRACT.md's "Test
+# power" section describes: what was broken on purpose, and the test that
+# went red because of it.
+MUTATION_RECORDED = {
+    "BACKLOG.md": (
+        "# Backlog\n\n"
+        "## Mutation log\n\n"
+        "    mutation: returned SATISFIED with empty evidence\n"
+        "    caught by: test_a_satisfied_verdict_without_evidence_is_rejected\n"
+    ),
+}
+
+# Mentions mutation testing in prose without recording one. The word is
+# not a record: nothing here says what was broken or what caught it, so
+# a collector that matches the word instead of the shape reports a pass
+# this repository has not earned.
+MUTATION_IN_PROSE = {
+    "README.md": (
+        "# Example\n\n"
+        "We plan to adopt mutation testing next quarter, which should\n"
+        "strengthen the suite beyond line coverage.\n"
+    ),
+}
+
+
 # --- Test-suite subjects (C7) ---------------------------------------------
 
 # Two modules of plain test functions: three tests in total, so the
