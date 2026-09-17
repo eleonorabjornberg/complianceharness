@@ -76,6 +76,49 @@ EMPTY_SHELL = {
 }
 
 
+# --- Test-suite subjects (C7) ---------------------------------------------
+
+# Two modules of plain test functions: three tests in total, so the
+# collector's reported count can be asserted exactly.
+TESTED = {
+    "README.md": "# Tested subject\n\nThe suite lives in tests/.\n",
+    "tests/test_math.py": (
+        "def test_addition():\n"
+        "    assert 1 + 1 == 2\n"
+        "\n"
+        "def test_subtraction():\n"
+        "    assert 3 - 1 == 2\n"
+    ),
+    "tests/test_words.py": (
+        "def test_upper():\n"
+        "    assert 'a'.upper() == 'A'\n"
+    ),
+}
+
+# The point of C7: a module whose name promises tests and whose body has
+# none. The planned signatures in the docstring are what a grep for
+# "def test" finds and an ast parse does not.
+LOOKS_LIKE_TESTS = {
+    "tests/test_things.py": (
+        "\"\"\"Tests for the things module. (Not written yet.)\n"
+        "\n"
+        "Planned:\n"
+        "    def test_addition(self): ...\n"
+        "    def test_subtraction(self): ...\n"
+        "\"\"\"\n"
+        "\n"
+        "def assemble_things():\n"
+        "    return ['thing']\n"
+    ),
+}
+
+# A test directory that exists and holds nothing at all.
+EMPTY_TEST_DIR = {
+    "README.md": "# Untested subject\n",
+    "tests/": None,
+}
+
+
 # --- Git fixtures ---------------------------------------------------------
 
 # Screened out of the parent environment: a leaked GIT_DIR or index would
