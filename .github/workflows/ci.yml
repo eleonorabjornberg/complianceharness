@@ -54,3 +54,24 @@ jobs:
             --pack agent-control --json --name subject > /tmp/two.json
           diff /tmp/one.json /tmp/two.json
           echo "reports are byte-identical across paths"
+
+  foreign-subject:
+    # Backlog I4: the tool does not crash on code it has never seen. The
+    # subject is one public repository, pinned by sha -- an unpinned
+    # subject would make this job non-deterministic, which this project
+    # cannot have. The tool's own exit-code contract says 2 means the run
+    # could not be performed at all, so only 0 and 1 count as reports;
+    # the guard turns anything else into a job failure. Pin:
+    #   pallets/click @ 934813e4d421071a1b3db3973c02fe2721359a6e (8.1.8)
+    # Small, stable, BSD-3-Clause. Public checkout only -- no secrets.
+    runs-on: ubuntu-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: pallets/click
+          ref: 934813e4d421071a1b3db3973c02fe2721359a6e
+          path: foreign-subject
+      - run: python3 tools/foreign_subject.py foreign-subject
