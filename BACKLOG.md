@@ -207,7 +207,7 @@ each other, so all of them can be in flight at once. Expect the conflict in
 
 ## Reporting and CLI
 
-- [ ] **R1 `--format markdown`** `[cli]`
+- [x] **R1 `--format markdown`** `[cli]` — done 17 Sep
   - **Sees:** a report a non-engineer can paste into a document, with the
     rationale shown for every unsupported claim. Most of this tool's
     audience cannot read the terminal output and should not have to.
@@ -351,3 +351,10 @@ In the shape CONTRACT.md asks for.
     note: caught first attempt. The CLI-level test caught it too: the
           appeared section vanished and the one-sided claim showed up in
           the unchanged line.
+
+    mutation: the markdown format computed the digest from the formatted
+          string instead of the report
+    caught by: test_the_digest_is_identical_across_text_and_markdown_formats
+    note: caught first attempt. The text format digests the report; the
+          mutated markdown hashed its own rendering, and for the same
+          report the two formats printed different digests.

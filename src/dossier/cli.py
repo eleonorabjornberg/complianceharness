@@ -2,8 +2,14 @@
 
     python3 -m dossier check <path> --pack model-evidence
     python3 -m dossier check <path> --pack agent-control --json
+    python3 -m dossier check <path> --pack agent-control --format markdown
     python3 -m dossier packs
     python3 -m dossier diff <a.json> <b.json>
+
+`--format markdown` renders the report for a reader away from the
+terminal — every verdict, the rationale of every unsupported claim, and
+the same digest the text format prints. `--json` still wins when both
+are given.
 
 Exit codes are part of the contract, because CI depends on them:
 
@@ -28,6 +34,7 @@ from . import engine, packs
 from .diff import diff_reports, document_digest
 from .model import (
     MISSING,
+    Pack,
     Report,
     SATISFIED,
     STALE,
@@ -53,6 +60,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     check.add_argument("--pack", required=True, choices=packs.names())
     check.add_argument("--json", action="store_true", help="emit the report as JSON")
     check.add_argument("--name", help="override the subject name recorded in the report")
+    check.add_argument(
+        "--format",
+        choices=("text", "markdown"),
+        default="text",
+        help="render the report as markdown instead of terminal text",
+    )
 
     sub.add_parser("packs", help="list available packs and their claims")
 
@@ -95,6 +108,8 @@ def _check(args) -> int:
 
     if args.json:
         print(report.to_json())
+    elif args.format == "markdown":
+        print(_format_markdown(report, pack))
     else:
         _print_report(report)
 
@@ -124,6 +139,48 @@ def _print_report(report: Report) -> None:
         print("blocking claims not supported:")
         for verdict in report.blocking:
             print(f"  {verdict.claim_id}")
+
+
+def _format_markdown(report: Report, pack: Pack | None = None) -> str:
+    """Render a report as markdown a non-engineer can paste into a document.
+
+    Formatting only: it reads the report and the pack's claims (for the
+    words and rationale of each claim) and changes neither. Without a
+    pack it renders what the report itself owns — the verdicts, the
+    reasons, the digest — and shows no rationale, because there is none
+    to show without inventing one.
+
+    The digest is the report's own, the same number the text format
+    prints: the format is a rendering, not a re-derivation.
+    """
+    claims = {claim.id: claim for claim in pack.claims} if pack else {}
+
+    lines = [f"# dossier report — {report.pack} {report.pack_version}", ""]
+    lines.append(f"Subject: {report.subject}")
+    lines += ["", "## Verdicts"]
+    for verdict in report.verdicts:
+        claim = claims.get(verdict.claim_id)
+        lines += ["", f"### {verdict.claim_id} — {verdict.status} ({verdict.severity})", ""]
+        if claim is not None:
+            lines += [claim.text, ""]
+        lines += [verdict.reason, ""]
+        lines += [
+            f"- evidence: {item.kind} `{item.locator}`"
+            for item in verdict.evidence
+        ]
+        if verdict.status != SATISFIED and claim is not None:
+            lines += ["", f"> **Why this claim matters:** {claim.rationale}"]
+
+    lines += ["", "## Summary", ""]
+    counts = summarise(report.verdicts)
+    lines += [f"- {name}: {count}" for name, count in counts.items() if count]
+    lines += ["", f"digest: {report.digest()[:16]}"]
+
+    if report.blocking:
+        lines += ["", "## Blocking claims not supported", ""]
+        lines += [f"- {verdict.claim_id}" for verdict in report.blocking]
+
+    return "\n".join(lines) + "\n"
 
 
 def _diff(args) -> int:
