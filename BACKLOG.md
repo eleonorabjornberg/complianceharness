@@ -73,7 +73,7 @@ each other, so all of them can be in flight at once. Expect the conflict in
   - **Mutation:** accept an empty trailer value as present. Caught by a
     fixture with `Co-Authored-By:` and nothing after it.
 
-- [ ] **C4 `command_succeeds`** `[collector]` — decided, buildable
+- [x] **C4 `command_succeeds`** `[collector]` — done 17 Sep
   - **Sees:** that a command the subject itself declares runs and exits
     zero inside the subject. The first collector whose evidence is a
     behaviour rather than a document.
@@ -358,3 +358,12 @@ In the shape CONTRACT.md asks for.
     note: caught first attempt. The text format digests the report; the
           mutated markdown hashed its own rendering, and for the same
           report the two formats printed different digests.
+
+    mutation: command_succeeds honoured .dossier.json without requiring the
+          operator's --allow-commands flag (the authorisation check disabled)
+    caught by: test_without_the_flag_a_declared_command_is_not_run
+    note: caught first attempt. The subject's declaration is only half of
+          the opt-in; the test holds the no-flag verdict to the exact
+          `command execution not authorised` reason, so the mutated
+          collector's SATISFIED (it ran the command uninvited) fails the
+          assert on both status and reason.

@@ -3,6 +3,7 @@
     python3 -m dossier check <path> --pack model-evidence
     python3 -m dossier check <path> --pack agent-control --json
     python3 -m dossier check <path> --pack agent-control --format markdown
+    python3 -m dossier check <path> --pack agent-control --allow-commands
     python3 -m dossier packs
     python3 -m dossier diff <a.json> <b.json>
 
@@ -10,6 +11,13 @@
 terminal — every verdict, the rationale of every unsupported claim, and
 the same digest the text format prints. `--json` still wins when both
 are given.
+
+`--allow-commands` is the operator's half of a two-party opt-in. Running
+a command the subject declares (the command_succeeds collector) needs
+both the subject's declaration in .dossier.json and this flag; neither
+alone is enough, because a repository cannot make a stranger's machine
+run its Makefile and an operator cannot run something the repository
+never offered.
 
 Exit codes are part of the contract, because CI depends on them:
 
@@ -28,6 +36,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from dataclasses import replace
 from typing import Sequence
 
 from . import engine, packs
@@ -65,6 +74,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         choices=("text", "markdown"),
         default="text",
         help="render the report as markdown instead of terminal text",
+    )
+    check.add_argument(
+        "--allow-commands",
+        action="store_true",
+        help=(
+            "run the commands the subject declares in .dossier.json; without it "
+            "command_succeeds claims report UNVERIFIABLE and nothing runs"
+        ),
     )
 
     sub.add_parser("packs", help="list available packs and their claims")
@@ -104,6 +121,9 @@ def _check(args) -> int:
         print(str(error), file=sys.stderr)
         return 2
 
+    if args.allow_commands:
+        pack = authorise_declared_commands(pack)
+
     report = engine.check(subject, pack)
 
     if args.json:
@@ -114,6 +134,27 @@ def _check(args) -> int:
         _print_report(report)
 
     return 1 if report.blocking else 0
+
+
+def authorise_declared_commands(pack: Pack) -> Pack:
+    """Grant the operator's half of the command opt-in to a pack.
+
+    The command_succeeds collector runs only when two parties agree: the
+    subject declares its commands in .dossier.json, and the operator
+    passes --allow-commands. A pack may name a declared command but can
+    never authorise running it — permission arrives from the operator or
+    not at all — so the flag is injected into claim params here, the one
+    channel the engine gives a collector, rather than living in a pack.
+    Every other claim is passed through untouched and the pack itself is
+    left unmodified.
+    """
+    claims = tuple(
+        replace(claim, params={**claim.params, "allow_commands": True})
+        if claim.collector == "command_succeeds"
+        else claim
+        for claim in pack.claims
+    )
+    return replace(pack, claims=claims)
 
 
 def _print_report(report: Report) -> None:
