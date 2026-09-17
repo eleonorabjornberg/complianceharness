@@ -60,7 +60,7 @@ each other, so all of them can be in flight at once. Expect the conflict in
     commit — a violation that was later reverted would go unreported.
     Caught by a fixture whose offending commit is not HEAD.
 
-- [ ] **C3 `commits_are_attributable`** `[collector]`
+- [x] **C3 `commits_are_attributable`** `[collector]` — done 17 Sep
   - **Sees:** that every commit has an author and a non-empty message, and
     — where an agent-author pattern is given — that every matching commit
     carries a trailer naming what produced it.
@@ -359,6 +359,12 @@ In the shape CONTRACT.md asks for.
           mutated markdown hashed its own rendering, and for the same
           report the two formats printed different digests.
 
+    mutation: an empty trailer value (`Co-Authored-By:` with nothing after
+          it) accepted as a producer trailer
+    caught by: test_an_empty_trailer_value_is_not_a_producer_trailer
+    note: caught first attempt, as the only red test of twelve. A trailer
+          that names nothing does not attribute a commit, so the fixture
+          carrying the bare token reports MISSING, not SATISFIED.
     mutation: --baseline suppressed by claim id regardless of status — a
           claim id the baseline ever saw was silenced whatever the current
           run said, so a regression on a known-debt claim went unreported
