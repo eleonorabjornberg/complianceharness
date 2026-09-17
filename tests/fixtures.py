@@ -9,7 +9,9 @@ stops meaning anything.
 
 from __future__ import annotations
 
+import os
 import shutil
+import subprocess
 import tempfile
 from pathlib import Path
 
@@ -66,6 +68,76 @@ EMPTY_SHELL = {
 }
 
 
+# --- Git fixtures ---------------------------------------------------------
+
+# Screened out of the parent environment: a leaked GIT_DIR or index would
+# point the fixture's git at some other repository's state.
+_STRIP_FROM_ENV = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_NAMESPACE")
+
+
+def _git(root: Path, args: list[str], commit: int | None = None) -> None:
+    """Run one git command inside a fixture, with a fixed identity and clock.
+
+    Machine git config is screened out and author, committer and dates are
+    fixed per commit, so the same commits build the same repository on any
+    machine — a fixture's shas are reproducible, which is the least a
+    fixture in this project owes the determinism rule. ``commit`` is the
+    one-based index of the commit being made; it fixes the commit date.
+    """
+    env = dict(os.environ)
+    for key in _STRIP_FROM_ENV:
+        env.pop(key, None)
+    env.update({"GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CONFIG_SYSTEM": "/dev/null"})
+    if commit is not None:
+        day = f"2026-01-{commit:02d}"
+        env.update(
+            {
+                "GIT_AUTHOR_NAME": "Fixture Author",
+                "GIT_AUTHOR_EMAIL": "fixture@example.com",
+                "GIT_AUTHOR_DATE": f"{day}T12:00:00+00:00",
+                "GIT_COMMITTER_NAME": "Fixture Committer",
+                "GIT_COMMITTER_EMAIL": "fixture@example.com",
+                "GIT_COMMITTER_DATE": f"{day}T12:00:00+00:00",
+            }
+        )
+    subprocess.run(
+        ["git", *args],
+        cwd=root,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+
+class GitTempSubject(TempSubject):
+    """A throwaway git repository, used as a context manager.
+
+        with GitTempSubject([{"README.md": "# x\\n"}, {"DATA.md": "y\\n"}]) as subject:
+            ...
+
+    Each dict is one commit, in order: commit one is the history's first
+    commit, the last dict is HEAD. Commits are made with the fixed identity
+    and clock of ``_git``, so the same commits list builds the same
+    repository — and the same shas — every time. An empty commits list is
+    a repository with no commits.
+    """
+
+    def __init__(self, commits: list[dict[str, str]] | None = None, name: str = "git-fixture"):
+        super().__init__(files={}, name=name)
+        self.commits = commits or []
+
+    def __enter__(self) -> Subject:
+        subject = super().__enter__()
+        _git(subject.root, ["init"])
+        for index, files in enumerate(self.commits, start=1):
+            for relative, content in files.items():
+                path = subject.root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content, encoding="utf-8")
+            _git(subject.root, ["add", "-A"])
+            _git(subject.root, ["commit", "-m", f"fixture commit {index}"], commit=index)
+        return subject
 # --- C6 declares_no_dependencies ------------------------------------------
 
 # Every entry pinned to an exact version: the pass where dependencies are

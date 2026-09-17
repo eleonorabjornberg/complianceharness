@@ -28,7 +28,7 @@ package's `__init__.py`, and a test file with fixtures. They do not import
 each other, so all of them can be in flight at once. Expect the conflict in
 `collectors/__init__.py` and resolve it by taking both sides.
 
-- [ ] **C1 `git_history`** `[collector]`
+- [x] **C1 `git_history`** `[collector]`
   - **Sees:** that the subject has a history at all, and which history —
     the sha of its first and last commit, so a verdict can be tied to a
     tree a reviewer can check out.
@@ -332,6 +332,12 @@ In the shape CONTRACT.md asks for.
     note: caught first attempt. This was previously a comment in
           collectors/__init__.py asking people to remember.
 
+    mutation: git_history raised instead of returning UNVERIFIABLE when
+          .git is missing
+    caught by: test_no_git_directory_reports_unverifiable
+    note: caught first attempt. The test calls the collector directly, so
+          the raise surfaces; behind the engine's catch-all it would have
+          come back as the same UNVERIFIABLE verdict and hidden the defect.
     mutation: `>=` accepted as a pin in declares_no_dependencies
     caught by: test_a_geq_constraint_is_not_a_pin
     note: caught first attempt, along with three sibling unpinned tests.
