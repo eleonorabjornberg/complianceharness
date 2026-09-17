@@ -150,7 +150,7 @@ each other, so all of them can be in flight at once. Expect the conflict in
   - **Mutation:** count by regex on the source. Caught by the
     looks-like-tests fixture.
 
-- [ ] **C8 `mutation_evidence_recorded`** `[collector]`
+- [x] **C8 `mutation_evidence_recorded`** `[collector]`
   - **Sees:** that the repository records at least one mutation and the
     test that caught it, in the shape CONTRACT.md's "Test power" section
     describes. Weak evidence by design — the point is that its absence is
@@ -331,3 +331,13 @@ In the shape CONTRACT.md asks for.
     caught by: test_every_collector_module_is_imported_by_its_package
     note: caught first attempt. This was previously a comment in
           collectors/__init__.py asking people to remember.
+
+    mutation: matched the word `mutation` anywhere in the subject instead
+          of the recorded block
+    caught by: test_a_mention_in_prose_is_not_a_recorded_mutation
+    note: caught first attempt. The prose fixture mentions mutation
+          testing without recording one, and the word-match collector
+          reported SATISFIED for it; only the block shape — a `mutation:`
+          line and a `caught by:` line sharing a paragraph — survives.
+          The locator test also caught it, since the word-match evidence
+          carried no line number.
