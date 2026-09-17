@@ -3,21 +3,29 @@
     python3 -m dossier check <path> --pack model-evidence
     python3 -m dossier check <path> --pack agent-control --json
     python3 -m dossier packs
+    python3 -m dossier diff <a.json> <b.json>
 
 Exit codes are part of the contract, because CI depends on them:
 
     0  no blocking claim is missing or stale
     1  at least one blocking claim is missing or stale
     2  the run could not be performed at all
+
+`diff` shares 0 and 2: 0 once the two reports have been compared, 2 when
+either argument is missing, unreadable or not a report. A diff full of
+regressions still exits 0 — deciding which differences block is the
+baseline feature's (I1) business, not this command's.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from typing import Sequence
 
 from . import engine, packs
+from .diff import diff_reports, document_digest
 from .model import (
     MISSING,
     Report,
@@ -48,10 +56,16 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     sub.add_parser("packs", help="list available packs and their claims")
 
+    diff = sub.add_parser("diff", help="compare two report JSON files")
+    diff.add_argument("a", help="the earlier report (JSON)")
+    diff.add_argument("b", help="the later report (JSON)")
+
     args = parser.parse_args(argv)
 
     if args.command == "packs":
         return _list_packs()
+    if args.command == "diff":
+        return _diff(args)
     return _check(args)
 
 
@@ -110,3 +124,66 @@ def _print_report(report: Report) -> None:
         print("blocking claims not supported:")
         for verdict in report.blocking:
             print(f"  {verdict.claim_id}")
+
+
+def _diff(args) -> int:
+    try:
+        before = _read_report(args.a)
+        after = _read_report(args.b)
+        result = diff_reports(before, after)
+    except (OSError, ValueError) as error:
+        print(f"diff: {error}", file=sys.stderr)
+        return 2
+
+    _print_diff(
+        result,
+        before_label=args.a,
+        after_label=args.b,
+        before_digest=document_digest(before),
+        after_digest=document_digest(after),
+    )
+    return 0
+
+
+def _read_report(path: str) -> dict:
+    """The only filesystem access `diff` performs: reading one argument."""
+    with open(path, encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def _print_diff(
+    result: dict,
+    *,
+    before_label: str,
+    after_label: str,
+    before_digest: str,
+    after_digest: str,
+) -> None:
+    print(f"diff  {before_label}  →  {after_label}")
+    print(f"  a: {before_digest[:16]}  b: {after_digest[:16]}")
+    print()
+
+    sections = (
+        ("gained", "gained support", "+"),
+        ("lost", "lost support", "-"),
+        ("changed", "changed status", "~"),
+        ("appeared", "appeared", "+"),
+        ("disappeared", "disappeared", "-"),
+    )
+    for key, heading, mark in sections:
+        if not result[key]:
+            continue
+        print(f"  {heading}:")
+        for entry in result[key]:
+            if "status" in entry:  # one-sided: only one status exists
+                print(f"    {mark} {entry['claim_id']}  {entry['status']}")
+            else:
+                print(
+                    f"    {mark} {entry['claim_id']}"
+                    f"  {entry['before']} → {entry['after']}"
+                )
+
+    unchanged = result["unchanged"]
+    listed = ", ".join(unchanged)
+    print()
+    print(f"unchanged: {len(unchanged)}" + (f" ({listed})" if unchanged else ""))
