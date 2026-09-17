@@ -138,3 +138,81 @@ class GitTempSubject(TempSubject):
             _git(subject.root, ["add", "-A"])
             _git(subject.root, ["commit", "-m", f"fixture commit {index}"], commit=index)
         return subject
+# --- C6 declares_no_dependencies ------------------------------------------
+
+# Every entry pinned to an exact version: the pass where dependencies are
+# declared and all of them are pinned. Comments and blank lines are in the
+# file so a parser that counts them as entries fails here.
+PINNED_REQUIREMENTS = {
+    "requirements.txt": (
+        "# pinned by hand\n"
+        "requests==2.31.0\n"
+        "\n"
+        "numpy==1.26.4\n"
+    ),
+}
+
+# A bare name and a `>=` range are both unpinned. The `>=` line is the one
+# that must catch the C6 mutation: a range is not a pin.
+UNPINNED_REQUIREMENTS = {
+    "requirements.txt": (
+        "requests\n"
+        "pandas>=2.0\n"
+    ),
+}
+
+# Exactly one `>=` entry, so exactly one thing can go wrong under mutation.
+GEQ_ONLY_REQUIREMENTS = {
+    "requirements.txt": "pandas>=2.0\n",
+}
+
+# The pass where there is nothing to audit at all.
+NO_DEPENDENCY_DECLARATION = {
+    "README.md": "# No dependencies declared here\n",
+}
+
+# pyproject dependency lists, multi-line so the parser's array tracking is
+# exercised and the evidence's line numbers are not all 1.
+PYPROJECT_PINNED = {
+    "pyproject.toml": (
+        "[project]\n"
+        'name = "example"\n'
+        "dependencies = [\n"
+        '    "requests==2.31.0",\n'
+        '    "numpy==1.26.4",\n'
+        "]\n"
+    ),
+}
+
+PYPROJECT_UNPINNED = {
+    "pyproject.toml": (
+        "[project]\n"
+        'name = "example"\n'
+        "dependencies = [\n"
+        '    "requests",\n'
+        '    "pandas>=2.0",\n'
+        "]\n"
+    ),
+}
+
+# Optional dependencies are dependencies too.
+PYPROJECT_OPTIONAL_UNPINNED = {
+    "pyproject.toml": (
+        "[project]\n"
+        'name = "example"\n'
+        "\n"
+        "[project.optional-dependencies]\n"
+        'test = ["pytest>=8.0"]\n'
+    ),
+}
+
+# A lockfile pins by construction.
+LOCKFILE_ONLY = {
+    "poetry.lock": "# generated lockfile\n",
+}
+
+# A lockfile does not rescue an unpinned requirements file.
+LOCKFILE_AND_UNPINNED_REQUIREMENTS = {
+    "requirements.txt": "requests\n",
+    "uv.lock": "# generated lockfile\n",
+}
