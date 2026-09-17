@@ -44,7 +44,7 @@ each other, so all of them can be in flight at once. Expect the conflict in
   - **Mutation:** raise instead of returning UNVERIFIABLE when `.git` is
     missing. Caught by the no-`.git` fixture test.
 
-- [ ] **C2 `no_commit_touched`** `[collector]`
+- [x] **C2 `no_commit_touched`** `[collector]`
   - **Sees:** that no commit in the history modified any path matching a
     given glob. This is the collector that makes AC-01 a finding rather
     than an aspiration: it is how a reviewer is shown that the agents did
@@ -358,3 +358,11 @@ In the shape CONTRACT.md asks for.
     note: caught first attempt. The text format digests the report; the
           mutated markdown hashed its own rendering, and for the same
           report the two formats printed different digests.
+
+    mutation: no_commit_touched compared HEAD's tree only instead of
+          walking every commit — a violation that was later reverted
+          went unreported
+    caught by: test_a_violation_later_reverted_is_still_reported
+    note: caught first attempt. The fixture whose offending commit is
+          HEAD passed under the mutation as well, so it cannot tell the
+          shortcut from the walk; only the reverted one can.
