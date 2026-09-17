@@ -239,7 +239,7 @@ each other, so all of them can be in flight at once. Expect the conflict in
     `blocking` — changing the default silently changes every existing
     caller's meaning.
 
-- [ ] **R4 Rationale inline for unsupported claims** `[cli]`
+- [x] **R4 Rationale inline for unsupported claims** `[cli]` — done 17 Sep
   - **Sees:** why a claim matters, at the moment it fails, truncated to one
     line, in the default output.
   - **Done when:** a test asserts the truncation is by character count and

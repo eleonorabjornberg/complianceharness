@@ -71,6 +71,23 @@ _MARKS = {
     UNVERIFIABLE: "?   ",
 }
 
+# Inline rationale width, in characters (R4). A constant, not a terminal
+# probe: the default output must render identically on every machine.
+_RATIONALE_WIDTH = 72
+
+
+def _inline_rationale(text: str, width: int = _RATIONALE_WIDTH) -> str:
+    """A claim's rationale as one line, cut by character count.
+
+    Cutting at a word boundary would let the rendered line depend on
+    where words happen to fall; cutting at a character count keeps it a
+    pure function of the rationale text.
+    """
+    collapsed = " ".join(text.split())
+    if len(collapsed) <= width:
+        return collapsed
+    return collapsed[: width - 1] + "…"
+
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="dossier", description=__doc__)
@@ -191,11 +208,17 @@ def authorise_declared_commands(pack: Pack) -> Pack:
 
 
 def _print_report(report: Report) -> None:
+    pack = packs.get(report.pack)
+    rationales = {c.id: c.rationale for c in pack.claims} if pack else {}
     print(f"{report.subject}  ·  {report.pack} {report.pack_version}")
     print()
     for verdict in report.verdicts:
         mark = _MARKS[verdict.status]
         print(f"  {mark}  {verdict.claim_id}  {verdict.reason}")
+        if verdict.status != SATISFIED and verdict.claim_id in rationales:
+            print(
+                f"          why: {_inline_rationale(rationales[verdict.claim_id])}"
+            )
         for item in verdict.evidence:
             print(f"          └─ {item.kind}: {item.locator}")
     print()
