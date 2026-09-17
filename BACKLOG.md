@@ -121,7 +121,7 @@ each other, so all of them can be in flight at once. Expect the conflict in
     `test_purity.py` if it imports `time`, and by a fixture whose files are
     all touched at checkout if it does not.
 
-- [ ] **C6 `declares_no_dependencies`** `[collector]`
+- [x] **C6 `declares_no_dependencies`** `[collector]`
   - **Sees:** that the subject has no unpinned dependency — no
     `requirements.txt`, `pyproject` dependency list or lockfile, or, where
     there is one, every entry pinned.
@@ -331,3 +331,9 @@ In the shape CONTRACT.md asks for.
     caught by: test_every_collector_module_is_imported_by_its_package
     note: caught first attempt. This was previously a comment in
           collectors/__init__.py asking people to remember.
+
+    mutation: `>=` accepted as a pin in declares_no_dependencies
+    caught by: test_a_geq_constraint_is_not_a_pin
+    note: caught first attempt, along with three sibling unpinned tests.
+          The unpinned fixture uses `>=` rather than a bare name precisely
+          so this mutation has a witness.
