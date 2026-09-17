@@ -1,0 +1,8 @@
+# Obvious platform contract for this repository.
+#
+# defaultBranch: the integration branch pull requests target (FACTORY.md
+#   routes all work through one branch and one PR).
+# requireHumanMerge: gate 5 in FACTORY.md — a human reads the rationale
+#   before a change lands. Agents never merge their own PRs.
+defaultBranch: main
+requireHumanMerge: true
