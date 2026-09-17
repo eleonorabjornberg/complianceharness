@@ -277,7 +277,7 @@ each other, so all of them can be in flight at once. Expect the conflict in
     environment, and every collector module is imported by its package.
     Both mutations recorded below.
 
-- [ ] **I4 Run against a second real repository in CI** `[infra]`
+- [x] **I4 Run against a second real repository in CI** `[infra]`
   - **Sees:** that the tool does not crash on code it has never seen.
   - **Done when:** CI checks out one pinned public repository by sha and
     runs both packs against it, asserting only that the exit code is 0 or
