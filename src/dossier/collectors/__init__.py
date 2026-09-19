@@ -11,7 +11,9 @@ from . import declares_no_dependencies  # noqa: F401
 from . import documents  # noqa: F401
 from . import git_history  # noqa: F401
 from . import mutation_evidence_recorded  # noqa: F401
+from . import no_commit_touched  # noqa: F401
 from . import test_suite_present  # noqa: F401
 
+__all__ = ["declares_no_dependencies", "documents", "git_history", "mutation_evidence_recorded", "no_commit_touched", "test_suite_present"]
 __all__ = ["commits_are_attributable", "declares_no_dependencies", "documents", "git_history", "mutation_evidence_recorded", "test_suite_present"]
 __all__ = ["command_succeeds", "declares_no_dependencies", "documents", "git_history", "mutation_evidence_recorded", "test_suite_present"]
