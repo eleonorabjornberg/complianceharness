@@ -336,6 +336,37 @@ REVERTED_VIOLATION = [
     {"src/dossier/model.py": "# the judge, edited\n"},
     {"src/dossier/model.py": DELETED},
 ]
+
+
+# --- C5 documented_within ---------------------------------------------------
+
+# The document moved with the code: its last change is the commit at HEAD,
+# so it is 0 commits behind and inside any limit.
+DOCUMENTED_CURRENT = [
+    {"README.md": "# v1\n", "docs/overview.md": "# Overview v1\n"},
+    {"README.md": "# v2\n"},
+    {"README.md": "# v3\n", "docs/overview.md": "# Overview v3\n"},
+]
+
+# The code moved on without the document: its last change is the first
+# commit, and two commits landed without touching it. Whether that is
+# STALE or SATISFIED is exactly the distance (2) against the limit, so
+# the same fixture must report both under different limits — and because
+# every file here is written at checkout time, this fixture is also what
+# catches a collector that decided freshness from file mtimes instead of
+# the history.
+DOCUMENTED_LAGGING = [
+    {"README.md": "# v1\n", "docs/overview.md": "# Overview v1\n"},
+    {"README.md": "# v2\n"},
+    {"README.md": "# v3\n"},
+]
+
+# A history that never touched the document: it does not exist anywhere,
+# which is a different absent answer from having no history at all.
+DOCUMENT_ABSENT = [
+    {"README.md": "# v1\n"},
+    {"README.md": "# v2\n"},
+]
 # --- Commit-attribution subjects (C3) ---------------------------------------
 
 def _fixture_git(
