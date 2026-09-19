@@ -44,7 +44,7 @@ each other, so all of them can be in flight at once. Expect the conflict in
   - **Mutation:** raise instead of returning UNVERIFIABLE when `.git` is
     missing. Caught by the no-`.git` fixture test.
 
-- [ ] **C2 `no_commit_touched`** `[collector]`
+- [x] **C2 `no_commit_touched`** `[collector]`
   - **Sees:** that no commit in the history modified any path matching a
     given glob. This is the collector that makes AC-01 a finding rather
     than an aspiration: it is how a reviewer is shown that the agents did
@@ -105,7 +105,7 @@ each other, so all of them can be in flight at once. Expect the conflict in
   - **Mutation:** honour `.dossier.json` without requiring the flag.
     Caught by the no-flag test, which must be written first.
 
-- [ ] **C5 `documented_within`** `[collector]`
+- [x] **C5 `documented_within`** `[collector]` — done 17 Sep
   - **Sees:** that a document was last modified within N commits of HEAD.
     This is how STALE stops being a status nothing can produce.
   - **Touches:** `collectors/documented_within.py`, `__init__.py`, test
@@ -359,6 +359,25 @@ In the shape CONTRACT.md asks for.
           mutated markdown hashed its own rendering, and for the same
           report the two formats printed different digests.
 
+    mutation: no_commit_touched compared HEAD's tree only instead of
+          walking every commit — a violation that was later reverted
+          went unreported
+    caught by: test_a_violation_later_reverted_is_still_reported
+    note: caught first attempt. The fixture whose offending commit is
+          HEAD passed under the mutation as well, so it cannot tell the
+          shortcut from the walk; only the reverted one can.
+    mutation: documented_within decided freshness by comparing the file's
+          mtime against the last commit's timestamp instead of counting
+          commits
+    caught by: test_a_document_left_behind_by_the_code_reports_stale
+    note: caught first attempt, and purity was blind to it: this variant
+          imports no clock, so the DOCUMENTED_LAGGING fixture — whose
+          files are all written at checkout time and therefore newer than
+          the fixture's fixed commit dates — is what catches it, as the
+          backlog predicted. Every document looked current and the stale
+          one reported SATISFIED. The variant of the same mutation that
+          imports time for it is caught first by
+          test_nothing_under_src_imports_a_source_of_irreproducibility.
     mutation: an empty trailer value (`Co-Authored-By:` with nothing after
           it) accepted as a producer trailer
     caught by: test_an_empty_trailer_value_is_not_a_producer_trailer

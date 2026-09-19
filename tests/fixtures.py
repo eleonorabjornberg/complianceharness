@@ -188,6 +188,14 @@ def _git(root: Path, args: list[str], commit: int | None = None) -> None:
     )
 
 
+# Sentinel for GitTempSubject commit dicts: the path named by the key is
+# deleted in that commit, so a fixture can express a change that was made
+# and later reverted. (``None`` in a plain TempSubject means "create an
+# empty directory"; inside a commit dict it would be nonsense, and this
+# is the meaning a commit can carry instead.)
+DELETED = object()
+
+
 class GitTempSubject(TempSubject):
     """A throwaway git repository, used as a context manager.
 
@@ -211,6 +219,9 @@ class GitTempSubject(TempSubject):
         for index, files in enumerate(self.commits, start=1):
             for relative, content in files.items():
                 path = subject.root / relative
+                if content is DELETED:
+                    path.unlink(missing_ok=True)
+                    continue
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(content, encoding="utf-8")
             _git(subject.root, ["add", "-A"])
@@ -295,6 +306,67 @@ LOCKFILE_AND_UNPINNED_REQUIREMENTS = {
     "uv.lock": "# generated lockfile\n",
 }
 
+
+# --- C2 no_commit_touched --------------------------------------------------
+
+# A history whose commits never touched anything matching the claim's
+# globs: the pass case, where the collector walked every commit and found
+# nothing. What counts as protected is the claim's globs, chosen in the
+# tests against these files — never a constant in the collector.
+CLEAN_HISTORY = [
+    {"README.md": "# one\n"},
+    {"src/engine.py": "pass\n"},
+]
+
+# The violation AC-01 exists to catch: a commit edited a path the claim
+# protects. The offending commit is also HEAD here, so a collector that
+# reads only the tree at HEAD still sees the damage and this fixture
+# cannot tell that shortcut from the real walk.
+VIOLATED_HISTORY = [
+    {"README.md": "# one\n"},
+    {"src/dossier/model.py": "# the judge, edited\n"},
+]
+
+# The fixture that separates walking the history from reading HEAD's
+# tree: the protected path was modified and the change was then reverted,
+# so no matching path exists at HEAD. The only evidence is the commit
+# that touched it; the tree HEAD points at is clean.
+REVERTED_VIOLATION = [
+    {"README.md": "# one\n"},
+    {"src/dossier/model.py": "# the judge, edited\n"},
+    {"src/dossier/model.py": DELETED},
+]
+
+
+# --- C5 documented_within ---------------------------------------------------
+
+# The document moved with the code: its last change is the commit at HEAD,
+# so it is 0 commits behind and inside any limit.
+DOCUMENTED_CURRENT = [
+    {"README.md": "# v1\n", "docs/overview.md": "# Overview v1\n"},
+    {"README.md": "# v2\n"},
+    {"README.md": "# v3\n", "docs/overview.md": "# Overview v3\n"},
+]
+
+# The code moved on without the document: its last change is the first
+# commit, and two commits landed without touching it. Whether that is
+# STALE or SATISFIED is exactly the distance (2) against the limit, so
+# the same fixture must report both under different limits — and because
+# every file here is written at checkout time, this fixture is also what
+# catches a collector that decided freshness from file mtimes instead of
+# the history.
+DOCUMENTED_LAGGING = [
+    {"README.md": "# v1\n", "docs/overview.md": "# Overview v1\n"},
+    {"README.md": "# v2\n"},
+    {"README.md": "# v3\n"},
+]
+
+# A history that never touched the document: it does not exist anywhere,
+# which is a different absent answer from having no history at all.
+DOCUMENT_ABSENT = [
+    {"README.md": "# v1\n"},
+    {"README.md": "# v2\n"},
+]
 # --- Commit-attribution subjects (C3) ---------------------------------------
 
 def _fixture_git(

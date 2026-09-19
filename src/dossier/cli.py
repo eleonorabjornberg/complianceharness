@@ -110,6 +110,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         help=(
             "run the commands the subject declares in .dossier.json; without it "
             "command_succeeds claims report UNVERIFIABLE and nothing runs"
+        ),
+    )
+    check.add_argument(
         "--baseline",
         help=(
             "a previous report (JSON): claims it already knew as"
