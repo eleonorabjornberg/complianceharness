@@ -13,7 +13,7 @@ import unittest
 
 from dossier import packs, registry
 from dossier import collectors  # noqa: F401  (registers collectors)
-from dossier.model import SEVERITIES
+from dossier.model import LINEAGES, SEVERITIES, STRENGTHS
 
 
 class PackIntegrityTests(unittest.TestCase):
@@ -53,6 +53,23 @@ class PackIntegrityTests(unittest.TestCase):
         for pack in packs.all_packs():
             for claim in pack.claims:
                 self.assertIn(claim.severity, SEVERITIES)
+
+    def test_every_claim_requires_a_rung_of_the_ladder(self):
+        for pack in packs.all_packs():
+            for claim in pack.claims:
+                with self.subTest(pack=pack.name, claim=claim.id):
+                    self.assertIn(claim.requires, STRENGTHS)
+
+    def test_every_claim_names_known_lineages_with_a_citation_each(self):
+        for pack in packs.all_packs():
+            for claim in pack.claims:
+                with self.subTest(pack=pack.name, claim=claim.id):
+                    self.assertTrue(claim.lineages)
+                    for lineage in claim.lineages:
+                        self.assertIn(lineage, LINEAGES)
+                    self.assertEqual(
+                        set(claim.citation_by_lineage), set(claim.lineages)
+                    )
 
     def test_every_pack_declares_its_source(self):
         for pack in packs.all_packs():

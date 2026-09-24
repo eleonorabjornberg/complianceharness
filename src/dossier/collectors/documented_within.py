@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import subprocess
 
-from ..model import MISSING, SATISFIED, STALE, UNVERIFIABLE, Evidence
+from ..model import FRESH, MISSING, PRESENT, SATISFIED, STALE, UNVERIFIABLE, Evidence
 from ..registry import register
 from ..subject import Subject
 
@@ -126,6 +126,7 @@ def documented_within(
             kind="commit",
             locator=sha,
             note=f"last commit to touch {found}; {distance} commit(s) behind HEAD",
+            strength=FRESH if distance <= within else PRESENT,
         ),
         Evidence(
             kind="file",

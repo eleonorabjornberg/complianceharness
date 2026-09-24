@@ -10,7 +10,8 @@
           "digest": "11282617b937dc6ebf8b0e6fa4e2ce6b1c27cc74ac9071da6ebea9782b14cba9",
           "kind": "file",
           "locator": "README.md",
-          "note": "15 lines"
+          "note": "15 lines",
+          "strength": "mentions"
         }
       ],
       "reason": "found README.md",
@@ -38,7 +39,8 @@
           "digest": "11282617b937dc6ebf8b0e6fa4e2ce6b1c27cc74ac9071da6ebea9782b14cba9",
           "kind": "section",
           "locator": "README.md:11",
-          "note": "## Evaluation"
+          "note": "## Evaluation",
+          "strength": "mentions"
         }
       ],
       "reason": "README.md has a 'Evaluation' section",
@@ -52,7 +54,8 @@
           "digest": "11282617b937dc6ebf8b0e6fa4e2ce6b1c27cc74ac9071da6ebea9782b14cba9",
           "kind": "file",
           "locator": "README.md",
-          "note": "15 lines"
+          "note": "15 lines",
+          "strength": "mentions"
         }
       ],
       "reason": "found README.md",
@@ -66,7 +69,8 @@
           "digest": "11282617b937dc6ebf8b0e6fa4e2ce6b1c27cc74ac9071da6ebea9782b14cba9",
           "kind": "file",
           "locator": "README.md",
-          "note": "15 lines"
+          "note": "15 lines",
+          "strength": "mentions"
         }
       ],
       "reason": "found README.md",
