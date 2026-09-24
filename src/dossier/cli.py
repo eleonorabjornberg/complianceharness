@@ -5,7 +5,9 @@
     python3 -m dossier check <path> --pack agent-control --format markdown
     python3 -m dossier check <path> --pack agent-control --allow-commands
     python3 -m dossier check <path> --pack model-evidence --baseline old.json
+    python3 -m dossier check <path> --pack model-evidence --fail-on any
     python3 -m dossier packs
+    python3 -m dossier explain ME-02
     python3 -m dossier diff <a.json> <b.json>
 
 `--baseline <report.json>` measures this run against an earlier report of
@@ -31,10 +33,26 @@ never offered.
 
 Exit codes are part of the contract, because CI depends on them:
 
-    0  no blocking claim is missing or stale, and no regression
-    1  at least one blocking claim is missing or stale, or a claim
-       regressed against the baseline
+    0  no failing claim, and no regression
+    1  at least one failing claim, or a claim regressed against the
+       baseline
     2  the run could not be performed at all
+
+What counts as a failing claim is set by `--fail-on`:
+
+    blocking  (default) a blocking claim that is missing or stale
+    any       a claim of any severity that is missing or stale
+
+UNVERIFIABLE never fails under either setting: it means the register
+does not know, and not knowing is not the same as no. Known debt under
+`--baseline` never fails either; a regression always does. The default
+is `blocking` and stays so, because changing it would silently change
+the meaning of every existing caller's exit code.
+
+`explain <claim-id>` prints one claim — its text, rationale, severity,
+collector and the source of every pack that carries it — without
+running anything against a subject. It exits 0 when the claim is
+found, and 2 when no pack carries it, naming the packs it searched.
 
 `diff` shares 0 and 2: 0 once the two reports have been compared, 2 when
 either argument is missing, unreadable or not a report. A diff full of
@@ -70,6 +88,11 @@ _MARKS = {
     STALE: "STALE",
     UNVERIFIABLE: "?   ",
 }
+
+# --fail-on (R3). The default is part of the exit-code contract.
+FAIL_ON_BLOCKING = "blocking"
+FAIL_ON_ANY = "any"
+FAIL_ON = (FAIL_ON_BLOCKING, FAIL_ON_ANY)
 
 # Inline rationale width, in characters (R4). A constant, not a terminal
 # probe: the default output must render identically on every machine.
@@ -113,6 +136,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         ),
     )
     check.add_argument(
+        "--fail-on",
+        choices=FAIL_ON,
+        default=FAIL_ON_BLOCKING,
+        help=(
+            "which unsupported claims make the run exit 1: 'blocking' (default)"
+            " only blocking claims missing or stale, 'any' a claim of any"
+            " severity missing or stale"
+        ),
+    )
+    check.add_argument(
         "--baseline",
         help=(
             "a previous report (JSON): claims it already knew as"
@@ -121,6 +154,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
 
     sub.add_parser("packs", help="list available packs and their claims")
+
+    explain = sub.add_parser(
+        "explain", help="show one claim in full, without running anything"
+    )
+    explain.add_argument("claim_id", help="a claim id, e.g. ME-02")
 
     diff = sub.add_parser("diff", help="compare two report JSON files")
     diff.add_argument("a", help="the earlier report (JSON)")
@@ -132,6 +170,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _list_packs()
     if args.command == "diff":
         return _diff(args)
+    if args.command == "explain":
+        return _explain(args.claim_id)
     return _check(args)
 
 
@@ -142,6 +182,49 @@ def _list_packs() -> int:
         for claim in pack.claims:
             print(f"  {claim.id}  [{claim.severity}]  {claim.text}")
         print()
+    return 0
+
+
+def _explain(claim_id: str) -> int:
+    """Print every pack's copy of one claim; 2 if no pack carries it.
+
+    A claim id is looked up exactly as written: ids are case-sensitive
+    in reports, so accepting ``me-02`` here would teach a spelling the
+    rest of the tool rejects.
+    """
+    searched = packs.all_packs()
+    found = [
+        (pack, claim)
+        for pack in searched
+        for claim in pack.claims
+        if claim.id == claim_id
+    ]
+    if not found:
+        names = ", ".join(pack.name for pack in searched)
+        print(f"no claim {claim_id!r} in any pack (searched: {names})", file=sys.stderr)
+        return 2
+
+    blocks = []
+    for pack, claim in found:
+        lines = [
+            f"{claim.id}  ·  {pack.name} {pack.version}",
+            f"  claim:     {claim.text}",
+            f"  severity:  {claim.severity}",
+            f"  collector: {claim.collector}",
+            f"  source:    {pack.source}",
+        ]
+        lineages = getattr(claim, "lineages", None)
+        if lineages:
+            citations = getattr(claim, "citation_by_lineage", None) or {}
+            for lineage in lineages:
+                citation = citations.get(lineage, "")
+                lines.append(
+                    f"  lineage:   {lineage}" + (f" — {citation}" if citation else "")
+                )
+        lines.append("  why:")
+        lines.append(f"    {' '.join(claim.rationale.split())}")
+        blocks.append("\n".join(lines))
+    print("\n\n".join(blocks))
     return 0
 
 
@@ -181,12 +264,39 @@ def _check(args) -> int:
     if classification is not None:
         _print_baseline_summary(classification)
 
-    blocked = (
-        report.blocking
-        if classification is None
-        else _baseline_blocking(report, classification)
-    )
-    return 1 if blocked else 0
+    return 1 if failing(report, args.fail_on, classification) else 0
+
+
+def failing(
+    report: Report, fail_on: str = FAIL_ON_BLOCKING, classification: dict | None = None
+) -> tuple[Verdict, ...]:
+    """The verdicts that make this run exit 1, sorted by claim id.
+
+    ``fail_on`` picks which unsupported claims count: blocking ones only,
+    or any severity. MISSING and STALE count; UNVERIFIABLE never does.
+    With a baseline classification, known debt is forgiven and a
+    regression fails whatever the setting.
+    """
+    if fail_on not in FAIL_ON:
+        raise ValueError(f"fail_on must be one of {FAIL_ON}, not {fail_on!r}")
+
+    def unsupported(verdict: Verdict) -> bool:
+        if fail_on == FAIL_ON_ANY:
+            return verdict.status in (MISSING, STALE)
+        return verdict.blocks
+
+    if classification is None:
+        chosen = [verdict for verdict in report.verdicts if unsupported(verdict)]
+    else:
+        debt_ids = {entry["claim_id"] for entry in classification["debt"]}
+        regressed_ids = {entry["claim_id"] for entry in classification["regressed"]}
+        chosen = [
+            verdict
+            for verdict in report.verdicts
+            if verdict.claim_id in regressed_ids
+            or (unsupported(verdict) and verdict.claim_id not in debt_ids)
+        ]
+    return tuple(sorted(chosen, key=lambda verdict: verdict.claim_id))
 
 
 def authorise_declared_commands(pack: Pack) -> Pack:
@@ -311,15 +421,7 @@ def _baseline_blocking(report: Report, classification: dict) -> tuple[Verdict, .
     support that existed in the baseline and is gone now cannot be lost
     quietly. Every other claim keeps its ordinary meaning.
     """
-    debt_ids = {entry["claim_id"] for entry in classification["debt"]}
-    regressed_ids = {entry["claim_id"] for entry in classification["regressed"]}
-
-    blocked = [
-        verdict
-        for claim_id, verdict in {v.claim_id: v for v in report.verdicts}.items()
-        if claim_id in regressed_ids or (verdict.blocks and claim_id not in debt_ids)
-    ]
-    return tuple(sorted(blocked, key=lambda verdict: verdict.claim_id))
+    return failing(report, FAIL_ON_BLOCKING, classification)
 
 
 def _print_baseline_summary(classification: dict) -> None:
