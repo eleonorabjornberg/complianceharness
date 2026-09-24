@@ -21,6 +21,42 @@ recorded in **C4** and **P1** below and are not open again inside a round.
 
 ---
 
+## Evidence strength — the ladder
+
+Every verdict already rests on evidence of some strength. Today that strength
+is invisible, which is why some claims are worded stronger than their
+collector delivers. The ladder makes it a value the report carries:
+
+    present       the file is there
+    mentions      it contains the right words
+    corresponds   everything concrete it names can be found
+    agrees        two independent documents state the same fact identically
+    fresh         it moved when the code it describes moved
+    behaves       something was run and it exited zero
+
+- [ ] **S1 The strength ladder** `[human]` — `model.py`, `engine.py`,
+  `tests/test_packs.py`
+  - **Sees:** a report that cannot overstate its own evidence. A claim
+    promising provenance, satisfied only because a file mentions the word,
+    stops printing `ok`.
+  - **Shape:** `Evidence` gains `strength` (default `present`); `Claim` gains
+    `requires` (default `present`). Both from the closed vocabulary above,
+    ranked by position, never compared as strings. The defaults are what keep
+    the existing suite green, so this lands before any claim is raised.
+  - **The downgrade:** a SATISFIED verdict whose best evidence ranks below the
+    claim's `requires` becomes UNVERIFIABLE, reason `supported only at
+    'mentions'; this claim requires 'corresponds'`. No fifth status — the
+    register already has a word for "I do not know", and this is that.
+  - **The rule it imposes on collectors:** attach only evidence the conclusion
+    actually rests on. The engine takes the strongest piece, so a decorative
+    locator would flatter the verdict.
+  - **Done when:** all existing tests stay green on the defaults; a claim
+    requiring `corresponds` against a subject that only mentions reports
+    UNVERIFIABLE; the printed line shows the rung reached.
+  - **Mutation:** compare strengths alphabetically instead of by ladder
+    position — which silently makes `behaves` weaker than `corresponds`.
+    Caught by a test asserting the order of two named rungs, not a count.
+
 ## Collectors — the parallel seam
 
 Each is a new file in `src/dossier/collectors/`, one import line in that
@@ -164,6 +200,54 @@ each other, so all of them can be in flight at once. Expect the conflict in
     Caught by a fixture mentioning mutation testing in prose without
     recording one.
 
+- [ ] **C9 `names_resolve`** `[collector]` — strength: `corresponds`
+  - **Sees:** that everything concrete a document names actually exists — a
+    path, a `make` target, a CLI flag, a filename. The collector that turns
+    prose into an assertion, and the cheapest route off the bottom two rungs.
+  - **Touches:** `collectors/names_resolve.py`, `__init__.py`, test file,
+    `tests/fixtures.py`.
+  - **Done when:** a fixture whose README names a path that is not there
+    reports MISSING and names it; one where every token resolves reports
+    SATISFIED at `corresponds`. Only unambiguous tokens are extracted —
+    backticked spans and fenced blocks — never bare words from prose, because
+    a collector that guesses at English is a collector nobody can trust.
+  - **Absent:** a document containing no concrete token at all is
+    UNVERIFIABLE, reason `nothing falsifiable to check`. This is the point of
+    the item: vagueness stops being a pass.
+  - **Mutation:** skip a token that looks like a path but does not exist,
+    treating it as prose. Caught by the missing-path fixture.
+
+- [ ] **C10 `documents_agree`** `[collector]` — strength: `agrees`
+  - **Sees:** that where two documents state the same fact, they state it
+    identically. The live instance is in this repository: the human-only list
+    appears in `CONTRACT.md`, is restated in `CLAUDE.md` and `AGENTS.md`, and
+    is parsed by `tools/check_boundary.py`. If those ever disagree, the
+    governance story is fiction and nothing currently notices.
+  - **Touches:** `collectors/documents_agree.py`, `__init__.py`, test file,
+    `tests/fixtures.py`.
+  - **Done when:** a fixture where two documents carry the same list reports
+    SATISFIED at `agrees`; one where they have drifted reports MISSING and
+    names the difference **in both directions** — in A not B, in B not A.
+  - **Absent:** a named document missing → UNVERIFIABLE, not MISSING. The
+    claim is about agreement, and one document cannot disagree with nothing.
+  - **Mutation:** test subset rather than equality, so an extra entry on one
+    side passes. Caught by the fixture where B carries one more.
+
+- [ ] **C11 `limitations_are_specific`** `[collector]` — strength: `corresponds`
+  - **Sees:** whether a Limitations section commits to anything checkable —
+    each item naming a file, a claim id, a status or a command — rather than
+    hedging. Keep it mechanical: an item is specific if it carries at least
+    one backticked token or a claim id. Do not attempt to judge English.
+  - **Touches:** `collectors/limitations_are_specific.py`, `__init__.py`,
+    test file, `tests/fixtures.py`.
+  - **Done when:** a fixture of specific limitations reports SATISFIED at
+    `corresponds`; one of hedged prose reports MISSING quoting the offending
+    lines; an absent section reports MISSING.
+  - **Absent:** MISSING. A system with no stated limitations has told the
+    reviewer something.
+  - **Mutation:** pass the section when any single item is specific. Caught by
+    a fixture with one specific item among four vague ones.
+
 ## Packs
 
 - [ ] **P1 Split `model-evidence` into its lineages** `[pack]` — decided
@@ -204,6 +288,16 @@ each other, so all of them can be in flight at once. Expect the conflict in
     pointing at a collector that does not exist.
   - **Done when:** at least one claim in `model-evidence` reports STALE
     against a fixture whose documentation lags its code.
+
+- [ ] **P4 Raise `requires` claim by claim** `[pack]`
+  - **Blocked by:** S1, and by C9 and C10 for the claims that will need them.
+  - **Sees:** the wording of each claim and the strength of its evidence
+    finally matching. One claim at a time, each in its own pull request, each
+    saying in the body which rung it moved to and why that rung is the honest
+    one.
+  - **Done when:** every `model-evidence` claim declares `requires`
+    explicitly, and the README's Limitations section describes the ladder
+    instead of apologising for the absence of one.
 
 ## Reporting and CLI
 
@@ -284,30 +378,61 @@ each other, so all of them can be in flight at once. Expect the conflict in
     1 — never 2. The pin is the point: an unpinned subject makes CI
     non-deterministic, which this project cannot have.
 
+- [ ] **I5 `tools/reviewer/` — a model in the loop, outside the register**
+  `[infra]`
+  - **Sees:** the one thing no deterministic collector reaches — whether a
+    document is *true* — without any of it touching a verdict.
+  - **Shape:** a program under `tools/`, never under `src/`. It reads a
+    committed report and the documents that report cites, and its only output
+    is a GitHub issue on the `finding` template. It is never imported by the
+    engine, a collector, or a pack, and nothing it writes is read back by any
+    of them. Run it twice and it may say different things; that is allowed
+    precisely because nothing downstream of it is a verdict.
+  - **The one-way valve:** findings become backlog items, backlog items become
+    collectors, collectors produce verdicts. Never the other direction.
+  - **Done when:** the reviewer opens a finding for a claim satisfied on
+    evidence that does not support it, and a guard asserts nothing under
+    `src/` imports anything under `tools/`. That guard line belongs in
+    `tests/test_purity.py`, which is human-only — the agent builds the
+    reviewer, Eleonora writes the guard.
+  - **Mutation:** import the reviewer from a collector. Caught by the guard,
+    which is why the guard lands first.
+
 ---
 
 ## Known gap, recorded rather than hidden
 
 `document_present` and `section_present` check that documentation exists and
-mentions the right words. They cannot tell whether it is *true*. Every claim
-resting on them is weaker than its wording suggests, and the README says so
-under Limitations. C1–C5 are the work that closes the gap; until they land,
-a green `model-evidence` report means "the paperwork is where a reviewer
-would look for it", and nothing more.
+mentions the right words. They cannot tell whether it is *true*, and no
+deterministic collector can: truth about the world is not a property of a
+file tree.
+
+What the register can do instead is make undocumented documentation
+expensive. A document is checkable exactly to the extent it commits to
+something falsifiable — "we evaluate the model" cannot be checked by
+anything, "evaluation is in `tests/test_eval.py`" can — so the tool rewards
+documents that stick their necks out and refuses to score a vague one the
+same as a specific one. That is what the ladder is for, and S1 is what makes
+it visible in the report rather than apologised for in the README.
+
+C9–C11 reach `corresponds` and `agrees`. C4 and C5 reach `behaves` and
+`fresh`. Nothing reaches truth, and the README should keep saying so.
 
 ## Suggested dispatch
 
 Round one, all parallel, nothing shared but `collectors/__init__.py`:
-**C1, C6, C7, C8, R2**. None needs a decision, none blocks another, and
-C1 landing unblocks the rest of the git-aware collectors.
+**C1, C6, C7, C8, C9, R2**. None needs a decision, none blocks another, and
+C9 is the one that buys the most: it is the step off `mentions`.
 
-Round two: **C2, C3, C5** (each wants C1's history helper), **R1, R4**.
+Round two: **C2, C3, C5** (each wants C1's history helper), **C10, C11**,
+**R1, R4**.
 
-Round three: **C4** (its own flag in the CLI, so not alongside R3),
-**P3** (needs C5 merged), **I1, I2, I4**.
+Round three: **C4** (its own flag in the CLI, so not alongside R3), **P3**
+(needs C5), **P4** (one pull request per claim), **I1, I2, I4, I5**.
 
-Human, not agent, and before round two: **P1a**. Then **P1b** can go out
-with round three.
+Human, not agent, and in this order: **S1** before round two, so the rungs
+exist before collectors start claiming them. **P1a** before P1b. The guard
+line for I5 before the reviewer is built.
 
 ## Mutation log
 
