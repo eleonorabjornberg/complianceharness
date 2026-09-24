@@ -1,0 +1,58 @@
+{
+  "pack": "privacy",
+  "pack_version": "0.1.0",
+  "subject": "golden-subject",
+  "verdicts": [
+    {
+      "claim_id": "PR-01",
+      "evidence": [
+        {
+          "digest": "05c879a4eb703fc1a36571161cab3992d0c3dc40cdebbad3ba278c6bbc7c656d",
+          "kind": "section",
+          "locator": "PRIVACY.md:3",
+          "note": "## Purpose of processing",
+          "strength": "mentions"
+        }
+      ],
+      "reason": "PRIVACY.md has a 'Purpose of processing' section",
+      "severity": "blocking",
+      "status": "satisfied"
+    },
+    {
+      "claim_id": "PR-02",
+      "evidence": [],
+      "reason": "no 'Legal basis' section in any of: PRIVACY.md, docs/PRIVACY.md, docs/privacy.md, README.md",
+      "severity": "blocking",
+      "status": "missing"
+    },
+    {
+      "claim_id": "PR-03",
+      "evidence": [
+        {
+          "digest": "05c879a4eb703fc1a36571161cab3992d0c3dc40cdebbad3ba278c6bbc7c656d",
+          "kind": "section",
+          "locator": "PRIVACY.md:7",
+          "note": "## Retention",
+          "strength": "mentions"
+        }
+      ],
+      "reason": "PRIVACY.md has a 'Retention' section",
+      "severity": "material",
+      "status": "satisfied"
+    },
+    {
+      "claim_id": "PR-04",
+      "evidence": [],
+      "reason": "no 'Data subject rights' section in any of: PRIVACY.md, docs/PRIVACY.md, docs/privacy.md, README.md",
+      "severity": "material",
+      "status": "missing"
+    },
+    {
+      "claim_id": "PR-05",
+      "evidence": [],
+      "reason": "no 'International transfers' section in any of: PRIVACY.md, docs/PRIVACY.md, docs/privacy.md, README.md",
+      "severity": "material",
+      "status": "missing"
+    }
+  ]
+}
