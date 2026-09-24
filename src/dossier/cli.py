@@ -5,6 +5,7 @@
     python3 -m dossier check <path> --pack agent-control --format markdown
     python3 -m dossier check <path> --pack agent-control --allow-commands
     python3 -m dossier check <path> --pack model-evidence --baseline old.json
+    python3 -m dossier check <path> --pack model-evidence --fail-on any
     python3 -m dossier packs
     python3 -m dossier diff <a.json> <b.json>
 
@@ -31,10 +32,21 @@ never offered.
 
 Exit codes are part of the contract, because CI depends on them:
 
-    0  no blocking claim is missing or stale, and no regression
-    1  at least one blocking claim is missing or stale, or a claim
-       regressed against the baseline
+    0  no failing claim, and no regression
+    1  at least one failing claim, or a claim regressed against the
+       baseline
     2  the run could not be performed at all
+
+What counts as a failing claim is set by `--fail-on`:
+
+    blocking  (default) a blocking claim that is missing or stale
+    any       a claim of any severity that is missing or stale
+
+UNVERIFIABLE never fails under either setting: it means the register
+does not know, and not knowing is not the same as no. Known debt under
+`--baseline` never fails either; a regression always does. The default
+is `blocking` and stays so, because changing it would silently change
+the meaning of every existing caller's exit code.
 
 `diff` shares 0 and 2: 0 once the two reports have been compared, 2 when
 either argument is missing, unreadable or not a report. A diff full of
@@ -70,6 +82,11 @@ _MARKS = {
     STALE: "STALE",
     UNVERIFIABLE: "?   ",
 }
+
+# --fail-on (R3). The default is part of the exit-code contract.
+FAIL_ON_BLOCKING = "blocking"
+FAIL_ON_ANY = "any"
+FAIL_ON = (FAIL_ON_BLOCKING, FAIL_ON_ANY)
 
 # Inline rationale width, in characters (R4). A constant, not a terminal
 # probe: the default output must render identically on every machine.
@@ -110,6 +127,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         help=(
             "run the commands the subject declares in .dossier.json; without it "
             "command_succeeds claims report UNVERIFIABLE and nothing runs"
+        ),
+    )
+    check.add_argument(
+        "--fail-on",
+        choices=FAIL_ON,
+        default=FAIL_ON_BLOCKING,
+        help=(
+            "which unsupported claims make the run exit 1: 'blocking' (default)"
+            " only blocking claims missing or stale, 'any' a claim of any"
+            " severity missing or stale"
         ),
     )
     check.add_argument(
@@ -181,12 +208,39 @@ def _check(args) -> int:
     if classification is not None:
         _print_baseline_summary(classification)
 
-    blocked = (
-        report.blocking
-        if classification is None
-        else _baseline_blocking(report, classification)
-    )
-    return 1 if blocked else 0
+    return 1 if failing(report, args.fail_on, classification) else 0
+
+
+def failing(
+    report: Report, fail_on: str = FAIL_ON_BLOCKING, classification: dict | None = None
+) -> tuple[Verdict, ...]:
+    """The verdicts that make this run exit 1, sorted by claim id.
+
+    ``fail_on`` picks which unsupported claims count: blocking ones only,
+    or any severity. MISSING and STALE count; UNVERIFIABLE never does.
+    With a baseline classification, known debt is forgiven and a
+    regression fails whatever the setting.
+    """
+    if fail_on not in FAIL_ON:
+        raise ValueError(f"fail_on must be one of {FAIL_ON}, not {fail_on!r}")
+
+    def unsupported(verdict: Verdict) -> bool:
+        if fail_on == FAIL_ON_ANY:
+            return verdict.status in (MISSING, STALE)
+        return verdict.blocks
+
+    if classification is None:
+        chosen = [verdict for verdict in report.verdicts if unsupported(verdict)]
+    else:
+        debt_ids = {entry["claim_id"] for entry in classification["debt"]}
+        regressed_ids = {entry["claim_id"] for entry in classification["regressed"]}
+        chosen = [
+            verdict
+            for verdict in report.verdicts
+            if verdict.claim_id in regressed_ids
+            or (unsupported(verdict) and verdict.claim_id not in debt_ids)
+        ]
+    return tuple(sorted(chosen, key=lambda verdict: verdict.claim_id))
 
 
 def authorise_declared_commands(pack: Pack) -> Pack:
@@ -311,15 +365,7 @@ def _baseline_blocking(report: Report, classification: dict) -> tuple[Verdict, .
     support that existed in the baseline and is gone now cannot be lost
     quietly. Every other claim keeps its ordinary meaning.
     """
-    debt_ids = {entry["claim_id"] for entry in classification["debt"]}
-    regressed_ids = {entry["claim_id"] for entry in classification["regressed"]}
-
-    blocked = [
-        verdict
-        for claim_id, verdict in {v.claim_id: v for v in report.verdicts}.items()
-        if claim_id in regressed_ids or (verdict.blocks and claim_id not in debt_ids)
-    ]
-    return tuple(sorted(blocked, key=lambda verdict: verdict.claim_id))
+    return failing(report, FAIL_ON_BLOCKING, classification)
 
 
 def _print_baseline_summary(classification: dict) -> None:
