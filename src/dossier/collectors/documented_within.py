@@ -16,16 +16,26 @@ report that depends on when it was run breaks the determinism rule
 
 from __future__ import annotations
 
+import re
 import subprocess
 
-from ..model import FRESH, MISSING, PRESENT, SATISFIED, STALE, UNVERIFIABLE, Evidence
+from ..model import (
+    FRESH,
+    MENTIONS,
+    MISSING,
+    PRESENT,
+    SATISFIED,
+    STALE,
+    UNVERIFIABLE,
+    Evidence,
+)
 from ..registry import register
 from ..subject import Subject
 
 
 @register("documented_within")
 def documented_within(
-    subject: Subject, candidates: list[str], within: int
+    subject: Subject, candidates: list[str], within: int, heading: str | None = None
 ) -> tuple[str, str, tuple[Evidence, ...]]:
     """The document at one of `candidates` was last modified within `within` commits of HEAD.
 
@@ -40,22 +50,48 @@ def documented_within(
     A repository with no commits is MISSING for the same reason C1 gives:
     the absence of a history is knowledge, not ignorance. Never raises.
 
+    With `heading`, the document is the first candidate carrying that
+    Markdown heading, matched the way section_present matches it, and a
+    subject where no candidate carries it is MISSING whether or not it
+    has a history: the absent section is knowledge before freshness is
+    asked about. The section is cited as evidence at 'mentions'; only the
+    commit distance, within the limit, reaches 'fresh'. Freshness is
+    measured on the whole file, not the section, which is the honest
+    limit of what git can say cheaply.
+
     Git is asked, never guessed at: subprocess runs an explicit argv list
     against the subject root, never a shell string.
     """
+    section: tuple[Evidence, ...] = ()
+    if heading is None:
+        if not subject.exists(".git"):
+            return (
+                UNVERIFIABLE,
+                "no .git at the subject root, so there is no history to measure freshness in",
+                (),
+            )
+        found = subject.first_existing(*candidates)
+        if found is None:
+            return (
+                MISSING,
+                "none of these exist: " + ", ".join(candidates),
+                (),
+            )
+    else:
+        located = _find_section(subject, candidates, heading)
+        if located is None:
+            return (
+                MISSING,
+                f"no {heading!r} section in any of: " + ", ".join(candidates),
+                (),
+            )
+        found, section = located
+
     if not subject.exists(".git"):
         return (
             UNVERIFIABLE,
             "no .git at the subject root, so there is no history to measure freshness in",
-            (),
-        )
-
-    found = subject.first_existing(*candidates)
-    if found is None:
-        return (
-            MISSING,
-            "none of these exist: " + ", ".join(candidates),
-            (),
+            section,
         )
 
     try:
@@ -121,7 +157,7 @@ def documented_within(
             (),
         )
 
-    evidence = (
+    evidence = section + (
         Evidence(
             kind="commit",
             locator=sha,
@@ -147,3 +183,29 @@ def documented_within(
         f"{found} was last modified {distance} commit(s) behind HEAD, which is beyond the limit of {within}",
         evidence,
     )
+
+
+def _find_section(
+    subject: Subject, candidates: list[str], heading: str
+) -> tuple[str, tuple[Evidence, ...]] | None:
+    """The first candidate carrying `heading`, and the section as evidence."""
+    pattern = re.compile(
+        r"^#{1,6}\s*" + re.escape(heading) + r"\s*$", re.IGNORECASE | re.MULTILINE
+    )
+    for candidate in candidates:
+        if not subject.exists(candidate):
+            continue
+        text = subject.read_text(candidate)
+        match = pattern.search(text)
+        if match:
+            line_number = text[: match.start()].count("\n") + 1
+            return candidate, (
+                Evidence(
+                    kind="section",
+                    locator=f"{candidate}:{line_number}",
+                    digest=subject.digest(candidate),
+                    note=match.group(0).strip(),
+                    strength=MENTIONS,
+                ),
+            )
+    return None

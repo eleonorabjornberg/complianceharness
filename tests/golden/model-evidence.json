@@ -1,6 +1,6 @@
 {
   "pack": "model-evidence",
-  "pack_version": "0.1.0",
+  "pack_version": "0.2.0",
   "subject": "golden-subject",
   "verdicts": [
     {
@@ -43,9 +43,9 @@
           "strength": "mentions"
         }
       ],
-      "reason": "README.md has a 'Evaluation' section",
+      "reason": "no .git at the subject root, so there is no history to measure freshness in",
       "severity": "blocking",
-      "status": "satisfied"
+      "status": "unverifiable"
     },
     {
       "claim_id": "ME-05",

@@ -14,11 +14,17 @@ and does not belong here.
 
 from __future__ import annotations
 
-from ..model import ADVISORY, BLOCKING, Claim, MATERIAL, Pack
+from ..model import ADVISORY, BLOCKING, Claim, FRESH, MATERIAL, Pack
+
+# How many commits a limitations or evaluation section may fall behind HEAD
+# before the claim is STALE (P3). A placeholder for Eleonora to set: the
+# right number depends on how often a subject commits, and is a judgement
+# about the reviewer's tolerance, not a fact about git.
+DOCS_MAY_LAG_BY = 20
 
 PACK = Pack(
     name="model-evidence",
-    version="0.1.0",
+    version="0.2.0",
     source="EU AI Act Annex IV; supervisory model-risk guidance (SR 11-7 lineage)",
     claims=(
         Claim(
@@ -55,11 +61,13 @@ PACK = Pack(
             id="ME-03",
             text="Known limitations are recorded.",
             severity=MATERIAL,
-            collector="section_present",
+            collector="documented_within",
             params={
                 "candidates": ["README.md", "MODEL_CARD.md", "docs/LIMITATIONS.md"],
                 "heading": "Limitations",
+                "within": DOCS_MAY_LAG_BY,
             },
+            requires=FRESH,
             rationale=(
                 "Undocumented limitations become the user's problem. This is also "
                 "the single best proxy for whether the team has actually "
@@ -70,11 +78,13 @@ PACK = Pack(
             id="ME-04",
             text="The evaluation method is documented, including how the test data was held out.",
             severity=BLOCKING,
-            collector="section_present",
+            collector="documented_within",
             params={
                 "candidates": ["README.md", "docs/EVALUATION.md", "PLAN.md"],
                 "heading": "Evaluation",
+                "within": DOCS_MAY_LAG_BY,
             },
+            requires=FRESH,
             rationale=(
                 "A performance number without its evaluation design is not "
                 "evidence. Look-ahead leakage is the most common defect in "
