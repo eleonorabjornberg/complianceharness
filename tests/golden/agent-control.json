@@ -1,0 +1,70 @@
+{
+  "pack": "agent-control",
+  "pack_version": "0.1.0",
+  "subject": "golden-subject",
+  "verdicts": [
+    {
+      "claim_id": "AC-01",
+      "evidence": [
+        {
+          "digest": "ade636ce0b365afb5bb4872cdd9421ae82a20871c0980134ec594922f1e56af5",
+          "kind": "file",
+          "locator": "CONTRACT.md",
+          "note": "5 lines"
+        }
+      ],
+      "reason": "CONTRACT.md exists but does not mention: human-only",
+      "severity": "blocking",
+      "status": "missing"
+    },
+    {
+      "claim_id": "AC-02",
+      "evidence": [
+        {
+          "digest": "ade636ce0b365afb5bb4872cdd9421ae82a20871c0980134ec594922f1e56af5",
+          "kind": "file",
+          "locator": "CONTRACT.md",
+          "note": "5 lines"
+        }
+      ],
+      "reason": "found CONTRACT.md",
+      "severity": "material",
+      "status": "satisfied"
+    },
+    {
+      "claim_id": "AC-03",
+      "evidence": [
+        {
+          "digest": "ade636ce0b365afb5bb4872cdd9421ae82a20871c0980134ec594922f1e56af5",
+          "kind": "section",
+          "locator": "CONTRACT.md:3",
+          "note": "## What a change must carry"
+        }
+      ],
+      "reason": "CONTRACT.md has a 'What a change must carry' section",
+      "severity": "blocking",
+      "status": "satisfied"
+    },
+    {
+      "claim_id": "AC-04",
+      "evidence": [],
+      "reason": "no 'Test power' section in any of: CONTRACT.md, README.md, docs/TESTING.md",
+      "severity": "material",
+      "status": "missing"
+    },
+    {
+      "claim_id": "AC-05",
+      "evidence": [
+        {
+          "digest": "11282617b937dc6ebf8b0e6fa4e2ce6b1c27cc74ac9071da6ebea9782b14cba9",
+          "kind": "file",
+          "locator": "README.md",
+          "note": "15 lines"
+        }
+      ],
+      "reason": "found README.md",
+      "severity": "material",
+      "status": "satisfied"
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "pack": "model-evidence",
+  "pack_version": "0.1.0",
+  "subject": "golden-subject",
+  "verdicts": [
+    {
+      "claim_id": "ME-01",
+      "evidence": [
+        {
+          "digest": "11282617b937dc6ebf8b0e6fa4e2ce6b1c27cc74ac9071da6ebea9782b14cba9",
+          "kind": "file",
+          "locator": "README.md",
+          "note": "15 lines"
+        }
+      ],
+      "reason": "found README.md",
+      "severity": "blocking",
+      "status": "satisfied"
+    },
+    {
+      "claim_id": "ME-02",
+      "evidence": [],
+      "reason": "none of these exist: DATA.md, docs/DATA.md, docs/data.md",
+      "severity": "blocking",
+      "status": "missing"
+    },
+    {
+      "claim_id": "ME-03",
+      "evidence": [],
+      "reason": "no 'Limitations' section in any of: README.md, MODEL_CARD.md, docs/LIMITATIONS.md",
+      "severity": "material",
+      "status": "missing"
+    },
+    {
+      "claim_id": "ME-04",
+      "evidence": [
+        {
+          "digest": "11282617b937dc6ebf8b0e6fa4e2ce6b1c27cc74ac9071da6ebea9782b14cba9",
+          "kind": "section",
+          "locator": "README.md:11",
+          "note": "## Evaluation"
+        }
+      ],
+      "reason": "README.md has a 'Evaluation' section",
+      "severity": "blocking",
+      "status": "satisfied"
+    },
+    {
+      "claim_id": "ME-05",
+      "evidence": [
+        {
+          "digest": "11282617b937dc6ebf8b0e6fa4e2ce6b1c27cc74ac9071da6ebea9782b14cba9",
+          "kind": "file",
+          "locator": "README.md",
+          "note": "15 lines"
+        }
+      ],
+      "reason": "found README.md",
+      "severity": "material",
+      "status": "satisfied"
+    },
+    {
+      "claim_id": "ME-06",
+      "evidence": [
+        {
+          "digest": "11282617b937dc6ebf8b0e6fa4e2ce6b1c27cc74ac9071da6ebea9782b14cba9",
+          "kind": "file",
+          "locator": "README.md",
+          "note": "15 lines"
+        }
+      ],
+      "reason": "found README.md",
+      "severity": "advisory",
+      "status": "satisfied"
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-.PHONY: check self packs boundary
+.PHONY: check self packs boundary golden
 
 BASE ?= origin/main
 
@@ -13,3 +13,6 @@ packs:
 
 boundary:
 	python3 tools/check_boundary.py $(BASE)
+
+golden:
+	PYTHONDONTWRITEBYTECODE=1 python3 -B tools/regen_golden.py
