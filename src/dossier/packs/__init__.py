@@ -9,11 +9,12 @@ editing the machinery.
 from __future__ import annotations
 
 from ..model import Pack
-from . import agent_control, model_evidence
+from . import agent_control, model_evidence, privacy
 
 _PACKS: dict[str, Pack] = {
     model_evidence.PACK.name: model_evidence.PACK,
     agent_control.PACK.name: agent_control.PACK,
+    privacy.PACK.name: privacy.PACK,
 }
 
 
