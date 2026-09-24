@@ -32,7 +32,7 @@ import hashlib
 import json
 import subprocess
 
-from ..model import MISSING, SATISFIED, UNVERIFIABLE, Evidence
+from ..model import BEHAVES, MISSING, PRESENT, SATISFIED, UNVERIFIABLE, Evidence
 from ..registry import register
 from ..subject import Subject
 
@@ -134,7 +134,16 @@ def command_succeeds(
     output = (completed.stdout or "") + (completed.stderr or "")
     output_digest = _digest(output)
     note = f"exit status {completed.returncode}"
-    evidence = (Evidence(kind="command", locator=name, digest=output_digest, note=note),)
+    evidence = (
+        Evidence(
+            kind="command",
+            locator=name,
+            digest=output_digest,
+            note=note,
+            # Only a zero exit is behaviour; a failing run is still a record.
+            strength=BEHAVES if completed.returncode == 0 else PRESENT,
+        ),
+    )
 
     if completed.returncode != 0:
         return (

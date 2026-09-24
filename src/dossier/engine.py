@@ -19,9 +19,11 @@ from . import registry
 from .model import (
     ContractError,
     Report,
+    SATISFIED,
     STATUSES,
     UNVERIFIABLE,
     Verdict,
+    strength_rank,
 )
 from .model import Pack
 from .subject import OutsideSubject, Subject
@@ -88,7 +90,7 @@ def _evaluate(subject: Subject, claim) -> Verdict:
         )
 
     try:
-        return Verdict(
+        verdict = Verdict(
             claim_id=claim.id,
             status=status,
             severity=claim.severity,
@@ -102,3 +104,32 @@ def _evaluate(subject: Subject, claim) -> Verdict:
             severity=claim.severity,
             reason=f"collector produced an invalid verdict: {error}",
         )
+
+    return _hold_to_required_strength(verdict, claim)
+
+
+def _hold_to_required_strength(verdict: Verdict, claim) -> Verdict:
+    """Downgrade a SATISFIED verdict its evidence is too weak to carry (S1).
+
+    The best piece of evidence decides: the engine takes the strongest
+    rung any cited evidence reached. Below the claim's ``requires`` the
+    verdict becomes UNVERIFIABLE — the register already has a word for
+    "I do not know", and a claim supported only by weaker evidence than
+    it promises is exactly that. The evidence stays attached, so the
+    reader sees what was found and how far up the ladder it got.
+    """
+    if verdict.status != SATISFIED:
+        return verdict
+    best = max(verdict.evidence, key=lambda item: strength_rank(item.strength))
+    if strength_rank(best.strength) >= strength_rank(claim.requires):
+        return verdict
+    return Verdict(
+        claim_id=verdict.claim_id,
+        status=UNVERIFIABLE,
+        severity=verdict.severity,
+        reason=(
+            f"supported only at {best.strength!r}; "
+            f"this claim requires {claim.requires!r} ({verdict.reason})"
+        ),
+        evidence=verdict.evidence,
+    )

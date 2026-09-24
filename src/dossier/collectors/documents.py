@@ -8,8 +8,9 @@ same shape with a different body.
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 
-from ..model import Evidence, MISSING, SATISFIED
+from ..model import Evidence, MENTIONS, MISSING, SATISFIED
 from ..registry import register
 from ..subject import Subject
 
@@ -51,6 +52,9 @@ def document_present(subject: Subject, candidates: list[str], must_mention: list
                 evidence,
             )
 
+    if must_mention:
+        # The words were checked, so the file is evidence at 'mentions'.
+        evidence = tuple(replace(item, strength=MENTIONS) for item in evidence)
     return SATISFIED, f"found {found}", evidence
 
 
@@ -79,6 +83,7 @@ def section_present(subject: Subject, candidates: list[str], heading: str) -> tu
                         locator=f"{candidate}:{line_number}",
                         digest=subject.digest(candidate),
                         note=match.group(0).strip(),
+                        strength=MENTIONS,
                     ),
                 ),
             )

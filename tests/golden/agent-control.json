@@ -10,7 +10,8 @@
           "digest": "ade636ce0b365afb5bb4872cdd9421ae82a20871c0980134ec594922f1e56af5",
           "kind": "file",
           "locator": "CONTRACT.md",
-          "note": "5 lines"
+          "note": "5 lines",
+          "strength": "present"
         }
       ],
       "reason": "CONTRACT.md exists but does not mention: human-only",
@@ -24,7 +25,8 @@
           "digest": "ade636ce0b365afb5bb4872cdd9421ae82a20871c0980134ec594922f1e56af5",
           "kind": "file",
           "locator": "CONTRACT.md",
-          "note": "5 lines"
+          "note": "5 lines",
+          "strength": "present"
         }
       ],
       "reason": "found CONTRACT.md",
@@ -38,7 +40,8 @@
           "digest": "ade636ce0b365afb5bb4872cdd9421ae82a20871c0980134ec594922f1e56af5",
           "kind": "section",
           "locator": "CONTRACT.md:3",
-          "note": "## What a change must carry"
+          "note": "## What a change must carry",
+          "strength": "mentions"
         }
       ],
       "reason": "CONTRACT.md has a 'What a change must carry' section",
@@ -59,7 +62,8 @@
           "digest": "11282617b937dc6ebf8b0e6fa4e2ce6b1c27cc74ac9071da6ebea9782b14cba9",
           "kind": "file",
           "locator": "README.md",
-          "note": "15 lines"
+          "note": "15 lines",
+          "strength": "mentions"
         }
       ],
       "reason": "found README.md",

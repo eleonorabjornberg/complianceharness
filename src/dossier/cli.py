@@ -333,7 +333,7 @@ def _print_report(report: Report) -> None:
                 f"          why: {_inline_rationale(rationales[verdict.claim_id])}"
             )
         for item in verdict.evidence:
-            print(f"          └─ {item.kind}: {item.locator}")
+            print(f"          └─ {item.kind}: {item.locator}  [{item.strength}]")
     print()
 
     counts = summarise(report.verdicts)
@@ -482,7 +482,7 @@ def _format_markdown(report: Report, pack: Pack | None = None) -> str:
             lines += [claim.text, ""]
         lines += [verdict.reason, ""]
         lines += [
-            f"- evidence: {item.kind} `{item.locator}`"
+            f"- evidence: {item.kind} `{item.locator}` ({item.strength})"
             for item in verdict.evidence
         ]
         if verdict.status != SATISFIED and claim is not None:
