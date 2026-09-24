@@ -7,6 +7,7 @@
     python3 -m dossier check <path> --pack model-evidence --baseline old.json
     python3 -m dossier check <path> --pack model-evidence --fail-on any
     python3 -m dossier packs
+    python3 -m dossier explain ME-02
     python3 -m dossier diff <a.json> <b.json>
 
 `--baseline <report.json>` measures this run against an earlier report of
@@ -47,6 +48,11 @@ does not know, and not knowing is not the same as no. Known debt under
 `--baseline` never fails either; a regression always does. The default
 is `blocking` and stays so, because changing it would silently change
 the meaning of every existing caller's exit code.
+
+`explain <claim-id>` prints one claim — its text, rationale, severity,
+collector and the source of every pack that carries it — without
+running anything against a subject. It exits 0 when the claim is
+found, and 2 when no pack carries it, naming the packs it searched.
 
 `diff` shares 0 and 2: 0 once the two reports have been compared, 2 when
 either argument is missing, unreadable or not a report. A diff full of
@@ -149,6 +155,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     sub.add_parser("packs", help="list available packs and their claims")
 
+    explain = sub.add_parser(
+        "explain", help="show one claim in full, without running anything"
+    )
+    explain.add_argument("claim_id", help="a claim id, e.g. ME-02")
+
     diff = sub.add_parser("diff", help="compare two report JSON files")
     diff.add_argument("a", help="the earlier report (JSON)")
     diff.add_argument("b", help="the later report (JSON)")
@@ -159,6 +170,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _list_packs()
     if args.command == "diff":
         return _diff(args)
+    if args.command == "explain":
+        return _explain(args.claim_id)
     return _check(args)
 
 
@@ -169,6 +182,49 @@ def _list_packs() -> int:
         for claim in pack.claims:
             print(f"  {claim.id}  [{claim.severity}]  {claim.text}")
         print()
+    return 0
+
+
+def _explain(claim_id: str) -> int:
+    """Print every pack's copy of one claim; 2 if no pack carries it.
+
+    A claim id is looked up exactly as written: ids are case-sensitive
+    in reports, so accepting ``me-02`` here would teach a spelling the
+    rest of the tool rejects.
+    """
+    searched = packs.all_packs()
+    found = [
+        (pack, claim)
+        for pack in searched
+        for claim in pack.claims
+        if claim.id == claim_id
+    ]
+    if not found:
+        names = ", ".join(pack.name for pack in searched)
+        print(f"no claim {claim_id!r} in any pack (searched: {names})", file=sys.stderr)
+        return 2
+
+    blocks = []
+    for pack, claim in found:
+        lines = [
+            f"{claim.id}  ·  {pack.name} {pack.version}",
+            f"  claim:     {claim.text}",
+            f"  severity:  {claim.severity}",
+            f"  collector: {claim.collector}",
+            f"  source:    {pack.source}",
+        ]
+        lineages = getattr(claim, "lineages", None)
+        if lineages:
+            citations = getattr(claim, "citation_by_lineage", None) or {}
+            for lineage in lineages:
+                citation = citations.get(lineage, "")
+                lines.append(
+                    f"  lineage:   {lineage}" + (f" — {citation}" if citation else "")
+                )
+        lines.append("  why:")
+        lines.append(f"    {' '.join(claim.rationale.split())}")
+        blocks.append("\n".join(lines))
+    print("\n\n".join(blocks))
     return 0
 
 
